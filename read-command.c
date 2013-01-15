@@ -34,22 +34,28 @@ char* trim_whitespace(char* str)
 }
 
 // Add command to command stream
-int add_command(char*** list, int cur_size, char** cmd, int len)
+int add_command(char*** list, int list_size, char* cmd, int cmd_size)
 {
-  if (*cmd == NULL || *list == NULL) 
+  if (cmd == NULL || *list == NULL) 
   {
     return 0;
   }
+
+  int i = 0;
+
+  char *l_cmd = (char*) malloc(cmd_size+1);
+  for (i = 0; i < cmd_size; i++)
+  {
+    l_cmd[i] = cmd[i];
+  }
   // Append null byte
-  *cmd = (char*) realloc(*cmd, (len+1)*sizeof(char));
-  (*cmd)[len] = '\0';
+  l_cmd[cmd_size] = '\0';
   // Trim whitespace
-  *cmd = trim_whitespace(*cmd);
+  l_cmd = trim_whitespace(l_cmd);
   // Add command to list
-  *list = (char**) realloc(*list, (cur_size+1)*sizeof(char**));
-  (*list)[cur_size] = malloc(strlen(*cmd));
-  (*list)[cur_size] = strdup(*cmd);
-  *cmd = NULL;
+  *list = (char**) realloc(*list, (list_size+1)*sizeof(char**));
+  (*list)[list_size] = strdup(l_cmd);
+  
   return 1;
 }
 
@@ -95,7 +101,9 @@ make_command_stream (int (*get_next_byte) (void *),
       // Add command
       if (tmp_ch != NULL) 
       {
-        add_command(&(result_stream->command_list), pt_count++, &tmp_ch, cmd_count);
+        add_command(&(result_stream->command_list), pt_count++, tmp_ch, cmd_count);
+        free(tmp_ch);
+        tmp_ch = NULL;
       }
       // Operator Cases
       if (input_byte == '#') 
@@ -110,17 +118,12 @@ make_command_stream (int (*get_next_byte) (void *),
       else if (input_byte != '|' && prev_byte == '|')
       {
         // Add operator 
-        tmp = (char*) malloc(sizeof(char));
-        tmp[0] = prev_byte;
-        add_command(&(result_stream->command_list), pt_count++, &tmp, 1);
+        add_command(&(result_stream->command_list), pt_count++, "|", 1);
       }
       else if (input_byte == '|' && prev_byte == '|')
       {
         // Add operator 
-        tmp = (char*) malloc(2*sizeof(char));
-        tmp[0] = input_byte;
-        tmp[1] = prev_byte;
-        add_command(&(result_stream->command_list), pt_count++, &tmp, 2);
+        add_command(&(result_stream->command_list), pt_count++, "||", 2);
         // prevent from being read again
         input_byte = ' ';
       }
@@ -130,17 +133,12 @@ make_command_stream (int (*get_next_byte) (void *),
       else if (input_byte != '&' && prev_byte == '&')
       {
         // Add operator 
-        tmp = (char*) malloc(sizeof(char));
-        tmp[0] = input_byte;
-        add_command(&(result_stream->command_list), pt_count++, &tmp, 1);
+        add_command(&(result_stream->command_list), pt_count++, "&", 1);
       }
       else if (input_byte == '&' && prev_byte == '&')
       {
         // Add operator 
-        tmp = (char*) malloc(2*sizeof(char));
-        tmp[0] = input_byte;
-        tmp[1] = prev_byte;
-        add_command(&(result_stream->command_list), pt_count++, &tmp, 2);
+        add_command(&(result_stream->command_list), pt_count++, "&&", 2);
         // prevent from being read again
         input_byte = ' ';
       }
@@ -149,7 +147,8 @@ make_command_stream (int (*get_next_byte) (void *),
         // Add operator 
         tmp = (char*) malloc(sizeof(char));
         tmp[0] = input_byte;
-        add_command(&(result_stream->command_list), pt_count++, &tmp, 1);
+        add_command(&(result_stream->command_list), pt_count++, tmp, 1);
+        free(tmp);
       }
 
       // Reset for next add
