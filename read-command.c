@@ -199,7 +199,8 @@ bool isValidChar(char c){
 	//checks whether character is valid given requirements in spec
 	char valid_chars[19] = { '!', '%', '+', ',', '-', '.', '/', ':', '@', '^', '_', ';',
 		'|', '&', '(', ')', '<', '>', '#'};
-	for(int i = 0; i < strlen(valid_chars); i++){
+  size_t i = 0;
+	for(i = 0; i < strlen(valid_chars); i++){
 		if(c != valid_chars[i]) return false;
 	}
 
@@ -218,7 +219,7 @@ bool noSpecialChar(char *c)
 	if(strcmp(c, "<")==0) return false;
 	if(strcmp(c, ">")==0) return false;
 	if(strcmp(c, ")")==0) return false;
-	if(strcmp(c, '(')==0) return false;
+	if(strcmp(c, "(")==0) return false;
 
 	return true;
 }
@@ -237,28 +238,26 @@ when read_command_stream is called one command
 object is returned, and the next time it is 
 called the second command object is returned, etc.
 	 */
-
-	s=s;
+  int i = 0;
 	//if the next command exists
 	if(s->cmd_count != s->size-1)
 	{
-		command cmd;
+		struct command cmd;
 		command_t cmd_ptr = &cmd;
 
-
 		//check for special tokens:
-		if(strcmp("&&", s[cmd_count])==0)
+		if(strcmp("&&", s->command_list[s->cmd_count])==0)
 		{
 			//if there is another command before and afterwards
-			if(cmd_count+1 <= s->size-1 && cmd_count-1 >=0 ){
-				if(noSpecialChar(s[cmd_count+1]))
+			if(s->cmd_count+1 <= s->size-1 && s->cmd_count-1 >=0 ){
+				if(noSpecialChar(s->command_list[s->cmd_count+1]))
 				{
 					cmd_ptr->type = AND_COMMAND;
 					cmd_ptr->status = 0;
-					command *previous;
-					command *next;
-					previous = s[cmd_count-1];
-					next = s[cmd_count+1];
+					struct command *previous;
+					struct command *next;
+					previous->u.word = &(s->command_list[s->cmd_count-1]);
+					next = s->command_list[s->cmd_count+1];
 					cmd_ptr->u.command[0] = previous;
 					cmd_ptr->u.command[1] = next; //am i doing this right?
 					//construct 
@@ -353,16 +352,16 @@ called the second command object is returned, etc.
 					cmd_ptr->u.subshell_command = s[cmd_count];
 					
 				}
-				else if(strcmp(')', s[cmd_count])==0)
+				else if(strcmp(")", s[cmd_count])==0)
 				{
 
 				}
-				else if(strcmp('<', s[cmd_count])==0) 
+				else if(strcmp("<", s[cmd_count])==0) 
 				{
 
 				}
 
-				else if(strcmp('>', s[cmd_count])==0)
+				else if(strcmp(">", s[cmd_count])==0)
 				{
 						
 
@@ -370,10 +369,9 @@ called the second command object is returned, etc.
 				}
 				else
 				{
-
-					for(int i = 0; i < strlen(s[cmd_count]))
+					for(i = 0; i < strlen(s[cmd_count]); i++)
 					{
-						if(!isValid(s[cmd_count][i]))
+						if(!isValidChar(s[cmd_count][i]))
 						{
 							//print error, abort
 						}
@@ -393,3 +391,5 @@ called the second command object is returned, etc.
 
 			return 0;
 		}
+  }
+}
