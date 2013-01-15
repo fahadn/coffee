@@ -237,7 +237,10 @@ when read_command_stream is called one command
 object is returned, and the next time it is 
 called the second command object is returned, etc.
 */
-  size_t i = 0;
+  
+	/*
+	
+	size_t i = 0;
   int index = s->cmd_count;
   int list_size = s->size;
 
@@ -248,153 +251,10 @@ called the second command object is returned, etc.
     cmd_ptr = (struct command*) malloc(sizeof(struct command));
 
         //check for special tokens:
-    if(strcmp("&&", s->command_list[index])==0)
-    {
-      //if there is another command before and afterwards
-      if(index+1 <= list_size-1 && index-1 >=0 )
-      {
-        if(noSpecialChar(s->command_list[index+1]))
-        {
-          cmd_ptr->type = AND_COMMAND;
-          cmd_ptr->status = 0;
-          struct command *previous = NULL;
-          struct command *next = NULL;
-          previous->u.word = &(s->command_list[index-1]);
-          next->u.word = &(s->command_list[index+1]);
-          cmd_ptr->u.command[0] = previous;
-          cmd_ptr->u.command[1] = next; //am i doing this right?
-          //construct 
-        }
-        else
-        {
-          //print an error message
-        } 	
-      }
-      else
-      {
-        //print another error message
-      }
-
-    } 
-    else if(strcmp("||", s->command_list[index])==0)
-    {
-      if(index+1 <= list_size-1 && index-1 >=0 )
-      {
-        if(noSpecialChar(s->command_list[index+1]))
-        {
-          cmd_ptr->type = OR_COMMAND;
-          cmd_ptr->status = 0;
-          struct command *previous = NULL;
-          struct command *next = NULL;
-          previous->u.word = &(s->command_list[index-1]);
-          next->u.word = &(s->command_list[index+1]);
-          cmd_ptr->u.command[0] = previous;
-          cmd_ptr->u.command[1] = next; //am i doing this right?
-          //construct 
-        }
-
-        else
-        {
-        }
-      } 
-      else
-      {
-      }
-    }
-    else if(strcmp(";", s->command_list[index])==0)
-    {
-      if(index+1 <= list_size-1 && index-1 >=0 )
-      {
-        if(noSpecialChar(s->command_list[index+1]))
-        {
-          cmd_ptr->type = SEQUENCE_COMMAND;
-          cmd_ptr->status = 0;
-          struct command *previous = NULL;
-          struct command *next = NULL;
-          previous->u.word = &(s->command_list[index-1]);
-          next->u.word = &(s->command_list[index+1]);
-          cmd_ptr->u.command[0] = previous;
-          cmd_ptr->u.command[1] = next; 
-        }				
-        else
-        {
-        }
-      }
-      else
-      {	
-      }
-    }
-    else if(strcmp("|", s->command_list[index])==0)
-    {
-      if(index+1 <= list_size-1 && s->cmd_count-1 >=0 )
-      {
-        if(noSpecialChar(s->command_list[index+1]))
-        {
-          cmd_ptr->type = PIPE_COMMAND;
-          cmd_ptr->status = 0;
-          struct command *previous = NULL;
-          struct command *next = NULL;
-          previous->u.word = &(s->command_list[index-1]);
-          next->u.word = &(s->command_list[index+1]);
-          cmd_ptr->u.command[0] = previous;
-          cmd_ptr->u.command[1] = next; 
-        }				
-        else
-        {
-        }
-      }
-    }
-    else if(strcmp("(", s->command_list[index])==0)
-    {
-      if(index+1 <= list_size-1)
-      {
-        if(noSpecialChar(s->command_list[index+1]))
-        {
-          cmd_ptr->type = SUBSHELL_COMMAND;
-          cmd_ptr->status = 0;
-
-          //cmd_ptr->u.subshell_command = s->command_list[index];
-        }
-      }
-    }
-    else if(strcmp(")", s->command_list[index])==0)
-    {
-
-    }
-    else
-    {
-      for(i = 0; i < strlen(s->command_list[index]); i++)
-      {
-        if(!isValidChar(s->command_list[index][i]))
-        {
-          //print error, abort
-        }
-      }
-      //valid command; execute
-    }
-
-    s->cmd_count += 1;
-    cmd_ptr->status = 0;
-    cmd_ptr->input = NULL;
-    cmd_ptr->output = NULL;
-    cmd_ptr->type = SIMPLE_COMMAND;
-    char** tmp2  = (char**) malloc(sizeof(char**));
-    tmp2[0] = (char*) malloc(10*sizeof(char));
-    for(i = 0; i < 4; i++)
-    {
-      tmp2[0][i] = 'a';
-    }
-    tmp2[4] = '\0';
-    cmd_ptr->u.word = tmp2;
-
-    return cmd_ptr;
+      return NULL;
   }
-  else
-  {
-    //check for matching number of left and right 
-    //parentheses
-
-    return NULL;
-  }
+	*/
+	s=s;
+	return NULL;
 }
 
