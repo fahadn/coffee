@@ -148,7 +148,7 @@ make_command_stream (int (*get_next_byte) (void *),
 				tmp[0] = input_byte;
 				add_command(&(result_stream->command_list), pt_count++, tmp, 1);
 				free(tmp);
-			}
+			ize:
 
 			// Reset for next add
 			if(input_byte == '#')
@@ -221,14 +221,31 @@ bool noSpecialChar(char *c)
 	return true;
 }
 
+void andOrPipeBuilder(command_stream_t s, int index, enum command_type type, struct command *cmd_ptr){
+
+	if(index+1 <= s->size-1 && index-1 >=0){
+		if(noSpecialChar(s->command_list[index+1])){
+			cmd_ptr->type = type;
+			cmd_ptr->status = 0;
+			struct command *previous = NULL;
+			struct command *next = NULL;
+			previous->u.word = &(s->command_list[index-1]);
+			next->u.word = &(s->command_list[index+1]);
+			cmd_ptr->u.command[0] = previous;
+			cmd_ptr->u.command[1] = next;
+
+		}
+	}
+}
+
 	command_t
-		read_command_stream (command_stream_t s)
-		{
-			/* 
-				 take a command stream, return a command_t object to be used
-				 by main.c
-				 Read a command from STREAM; return it, or NULL on EOF.  If there is
-				 an error, report the error and exit instead of returning.  
+read_command_stream (command_stream_t s)
+{
+	/* 
+		 take a command stream, return a command_t object to be used
+		 by main.c
+		 Read a command from STREAM; return it, or NULL on EOF.  If there is`
+		 an error, report the error and exit instead of returning.  
 Given: array of pointers to c strings (command_stream)
 Output: singular constructed command objects such that
 when read_command_stream is called one command
@@ -236,31 +253,143 @@ object is returned, and the next time it is
 called the second command object is returned, etc.
 
 
-			 */
+	 */
 
 
-			//size_t i = 0;
-			int index = s->cmd_count;
-			int list_size = s->size;
+	size_t i = 0;
+	int index = s->cmd_count;
+	int list_size = s->size;
 
 
-			printf("cmd_count: %d \n", index);
-			printf("s_size: %d \n", list_size);
-			//if the next command exists
-			if(index != list_size)
+	command_t cmd_ptr = NULL;
+
+	printf("cmd_count: %d \n", index);
+	printf("s_size: %d \n", list_size);
+	//if the next command exists
+	if(index != list_size)
+	{
+
+		cmd_ptr = (struct command*) malloc(sizeof(struct command));
+
+
+		if(strcmp("&&", s->command_list[index])==0)
+		{
+			if(index+1 <= list_size-1 && index-1 >=0)
 			{
-				command_t cmd_ptr = NULL;
-				cmd_ptr = (struct command*) malloc(sizeof(struct command));
+				if(noSpecialChar(s->command_list[index+1]))
+				{
+					andOrPipeBuilder(s,index, AND_COMMAND,cmd_ptr); 
+				}
+				else
+				{
+					//error: invalid syntax
 
-				cmd_ptr->status =0;
-				cmd_ptr->type = SIMPLE_COMMAND;
-				cmd_ptr->u.word = &(s->command_list[0]);
-				cmd_ptr->input = NULL;
-				cmd_ptr->output = NULL;
-        s->cmd_count++;
-				return cmd_ptr;
+				}
+
+			}
+			else
+			{ //error: no left or right
 			}
 
-      return NULL;
 		}
-		
+		else if(strcmp("||", s->command_list[index])==0)
+		{
+			if(index+1 <=list_size-1 && index-1 >= 0)
+			{
+				if(noSpecialChar(s->command_list[index+1]))
+				{
+					andOrPipeBuilder(s,index,OR_COMMAND, cmd_ptr);
+				}
+				else
+				{
+
+				}
+			}
+			else
+			{
+
+			}
+		}
+		else if(strcmp("|", s->command_list[index])==0)
+		{
+			if(index+1 <= list_size-1 && index-1 >= 0 )
+			{
+				if(noSpecialChar(s->command_list[index+1]))
+				{
+					andOrPipeBuilder(s,index,PIPE_COMMAND, cmd_ptr);
+				}
+				else
+				{
+
+				}
+			}
+			else
+			{
+
+
+			}
+
+		}
+		else if(strcmp(";", s->command_list[index])==0)
+		{
+			if(index+1 <= list_size-1 && index-1 >= 0 )
+			{
+				if(noSpecialChar(s->command_list[index+1]))
+				{
+					andOrPipeBuilder(s,index,SEQUENCE_COMMAND, cmd_ptr);
+				}
+				else
+				{
+
+				}
+			}
+			else
+			{
+
+
+			}
+
+
+		}
+		else if(strcmp("(", s->command_list[index])==0)
+		{
+			if(index+1 <= list_size-1)
+			{
+				if(noSpecialChar(s->command_list[index+1]))
+				{
+					cmd_ptr->type = SUBSHELL_COMMAND;
+					cmd_ptr->status = 0;
+
+					//cmd_ptr->u.subshell_command = s->command_list[index];
+				}
+			}
+		}
+		else if(strcmp(")", s->command_list[index])==0)
+		{
+
+		}
+		else
+		{
+			for(i = 0; i < strlen(s->command_list[index]); i++)
+			{
+				if(!isValidChar(s->command_list[index][i]))
+				{
+					//print error, abort
+				}
+			}
+			//valid command; execute
+
+			cmd_ptr->status =0;
+			cmd_ptr->type = SIMPLE_COMMAND;
+			cmd_ptr->u.word = &(s->command_list[0]);
+			cmd_ptr->input = NULL;
+			cmd_ptr->output = NULL;
+		}
+    s->cmd_count++;
+	}
+	else{
+			
+	}
+
+	return cmd_ptr;
+}
