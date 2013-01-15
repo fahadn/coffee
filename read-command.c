@@ -82,8 +82,7 @@ make_command_stream (int (*get_next_byte) (void *),
 	char prev_byte;
 	char *tmp = NULL;
 	char *tmp_ch = NULL;
-	command_stream t = { 0, 0, NULL };
-	command_stream_t result_stream = &t;
+	command_stream_t result_stream = (struct command_stream*) malloc(sizeof(struct command_stream*));
 
 	// Initalize memory allocation for stream
 	result_stream->command_list = (char**) malloc(sizeof(char**));
@@ -246,24 +245,22 @@ called the second command object is returned, etc.
 
 
 			printf("cmd_count: %d \n", index);
-			printf("list_size: %d \n", list_size);
+			printf("s_size: %d \n", list_size);
 			//if the next command exists
 			if(index != list_size)
 			{
 				command_t cmd_ptr = NULL;
 				cmd_ptr = (struct command*) malloc(sizeof(struct command));
 
-
 				cmd_ptr->status =0;
 				cmd_ptr->type = SIMPLE_COMMAND;
 				cmd_ptr->u.word = &(s->command_list[0]);
 				cmd_ptr->input = NULL;
 				cmd_ptr->output = NULL;
-				printf("blahsdhd");
+        s->cmd_count++;
 				return cmd_ptr;
 			}
 
-
-			return NULL;
+      return NULL;
 		}
 		
