@@ -106,7 +106,6 @@ make_command_stream (int (*get_next_byte) (void *),
       }
       else if (input_byte == '|' && prev_byte != '|')
       {
-        printf("hello");
       }
       else if (input_byte != '|' && prev_byte == '|')
       {
@@ -243,15 +242,17 @@ called the second command object is returned, etc.
   int list_size = s->size;
 
   //if the next command exists
-  if(index != list_size-1)
+  if(index != list_size)
   {
-    struct command cmd;
-    command_t cmd_ptr = &cmd;
-    //check for special tokens:
+    command_t cmd_ptr = NULL;
+    cmd_ptr = (struct command*) malloc(sizeof(struct command));
+
+        //check for special tokens:
     if(strcmp("&&", s->command_list[index])==0)
     {
       //if there is another command before and afterwards
-      if(index+1 <= list_size-1 && index-1 >=0 ){
+      if(index+1 <= list_size-1 && index-1 >=0 )
+      {
         if(noSpecialChar(s->command_list[index+1]))
         {
           cmd_ptr->type = AND_COMMAND;
@@ -372,7 +373,20 @@ called the second command object is returned, etc.
       //valid command; execute
     }
 
-    s->cmd_count++;
+    s->cmd_count += 1;
+    cmd_ptr->status = 0;
+    cmd_ptr->input = NULL;
+    cmd_ptr->output = NULL;
+    cmd_ptr->type = SIMPLE_COMMAND;
+    char** tmp2  = (char**) malloc(sizeof(char**));
+    tmp2[0] = (char*) malloc(10*sizeof(char));
+    for(i = 0; i < 4; i++)
+    {
+      tmp2[0][i] = 'a';
+    }
+    tmp2[4] = '\0';
+    cmd_ptr->u.word = tmp2;
+
     return cmd_ptr;
   }
   else
