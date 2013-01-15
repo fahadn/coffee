@@ -56,7 +56,7 @@ int add_command(char*** list, int cur_size, char** cmd, int len)
 int is_valid_op(char op, char last_op) 
 {
   return (op == '\n' || op == ';' || op == '#' || op == '(' || op == ')' ||
-          op == '&'  || op == '|' || last_op == '&' || last_op == '|');
+      op == '&'  || op == '|' || last_op == '&' || last_op == '|');
 }
 
   command_stream_t
@@ -168,7 +168,7 @@ make_command_stream (int (*get_next_byte) (void *),
     }
     if (input_byte == '#') 
     {
-            // Reset
+      // Reset
       prev_byte = input_byte;
       input_byte = get_next_byte(get_next_byte_argument);
       continue;
@@ -190,206 +190,197 @@ make_command_stream (int (*get_next_byte) (void *),
     printf("%d: %s\n", i, result_stream->command_list[i]);
   }
   printf("\npt_count: %d \n", pt_count);
-  
+
   // Returns stream as character array
   return result_stream;
 }
 
 bool isValidChar(char c){
-	//checks whether character is valid given requirements in spec
-	char valid_chars[19] = { '!', '%', '+', ',', '-', '.', '/', ':', '@', '^', '_', ';',
-		'|', '&', '(', ')', '<', '>', '#'};
+  //checks whether character is valid given requirements in spec
+  char valid_chars[19] = { '!', '%', '+', ',', '-', '.', '/', ':', '@', '^', '_', ';',
+    '|', '&', '(', ')', '<', '>', '#'};
   size_t i = 0;
-	for(i = 0; i < strlen(valid_chars); i++){
-		if(c != valid_chars[i]) return false;
-	}
+  for(i = 0; i < strlen(valid_chars); i++){
+    if(c != valid_chars[i]) return false;
+  }
 
-	if(!isalnum(c)) return false;
-	return true;
+  if(!isalnum(c)) return false;
+  return true;
 }
 
 bool noSpecialChar(char *c)
 {
-	//determines whether a special character obeys grammar rules
-	if(strcmp(c, "&&")==0) return false;
-	if(strcmp(c, "||")==0) return false;	
-	if(strcmp(c, "|")==0) return false;
-	if(strcmp(c, "&")==0) return false;
-	if(strcmp(c, ";")==0) return false;
-	if(strcmp(c, "<")==0) return false;
-	if(strcmp(c, ">")==0) return false;
-	if(strcmp(c, ")")==0) return false;
-	if(strcmp(c, "(")==0) return false;
+  //determines whether a special character obeys grammar rules
+  if(strcmp(c, "&&")==0) return false;
+  if(strcmp(c, "||")==0) return false;	
+  if(strcmp(c, "|")==0) return false;
+  if(strcmp(c, "&")==0) return false;
+  if(strcmp(c, ";")==0) return false;
+  if(strcmp(c, "<")==0) return false;
+  if(strcmp(c, ">")==0) return false;
+  if(strcmp(c, ")")==0) return false;
+  if(strcmp(c, "(")==0) return false;
 
-	return true;
+  return true;
 }
 
-	command_t
+  command_t
 read_command_stream (command_stream_t s)
 {
-	/* take a command stream, return a command_t object to be used
-		 by main.c
-		 Read a command from STREAM; return it, or NULL on EOF.  If there is
-		 an error, report the error and exit instead of returning.  
-
+  /* 
+     take a command stream, return a command_t object to be used
+     by main.c
+     Read a command from STREAM; return it, or NULL on EOF.  If there is
+     an error, report the error and exit instead of returning.  
 Given: array of pointers to c strings (command_stream)
 Output: singular constructed command objects such that
 when read_command_stream is called one command
 object is returned, and the next time it is 
 called the second command object is returned, etc.
-	 */
-  int i = 0;
-	//if the next command exists
-	if(s->cmd_count != s->size-1)
-	{
-		struct command cmd;
-		command_t cmd_ptr = &cmd;
+*/
+  size_t i = 0;
+  int index = s->cmd_count;
+  int list_size = s->size;
 
-		//check for special tokens:
-		if(strcmp("&&", s->command_list[s->cmd_count])==0)
-		{
-			//if there is another command before and afterwards
-			if(s->cmd_count+1 <= s->size-1 && s->cmd_count-1 >=0 ){
-				if(noSpecialChar(s->command_list[s->cmd_count+1]))
-				{
-					cmd_ptr->type = AND_COMMAND;
-					cmd_ptr->status = 0;
-					struct command *previous;
-					struct command *next;
-					previous->u.word = &(s->command_list[s->cmd_count-1]);
-					next = s->command_list[s->cmd_count+1];
-					cmd_ptr->u.command[0] = previous;
-					cmd_ptr->u.command[1] = next; //am i doing this right?
-					//construct 
-				}
-				else
-				{
-					//print an error message
-				} 	
-			}
-			else
-			{
-				//print another error message
-			}
+  //if the next command exists
+  if(index != list_size-1)
+  {
+    struct command cmd;
+    command_t cmd_ptr = &cmd;
+    //check for special tokens:
+    if(strcmp("&&", s->command_list[index])==0)
+    {
+      //if there is another command before and afterwards
+      if(index+1 <= list_size-1 && index-1 >=0 ){
+        if(noSpecialChar(s->command_list[index+1]))
+        {
+          cmd_ptr->type = AND_COMMAND;
+          cmd_ptr->status = 0;
+          struct command *previous = NULL;
+          struct command *next = NULL;
+          previous->u.word = &(s->command_list[index-1]);
+          next->u.word = &(s->command_list[index+1]);
+          cmd_ptr->u.command[0] = previous;
+          cmd_ptr->u.command[1] = next; //am i doing this right?
+          //construct 
+        }
+        else
+        {
+          //print an error message
+        } 	
+      }
+      else
+      {
+        //print another error message
+      }
 
-		} 
-		else if(strcmp("||", s[cmd_count])==0)
-		{
-			if(cmd_count+1 <= s->size-1 && cmd_count-1 >=0){
-				if(noSpecialChar(s[cmd_count+1]))
-				{
-					cmd_ptr->type = OR_COMMAND;
-					cmd_ptr->status = 0;
-					command *previous;
-					command *next;
-					previous = s[cmd_count-1];
-					next = s[cmd_count+1];
-					cmd_ptr->u.command[0] = previous;
-					cmd_ptr->u.command[1] = next;
-				} 
-				else
-				{
+    } 
+    else if(strcmp("||", s->command_list[index])==0)
+    {
+      if(index+1 <= list_size-1 && index-1 >=0 )
+      {
+        if(noSpecialChar(s->command_list[index+1]))
+        {
+          cmd_ptr->type = OR_COMMAND;
+          cmd_ptr->status = 0;
+          struct command *previous = NULL;
+          struct command *next = NULL;
+          previous->u.word = &(s->command_list[index-1]);
+          next->u.word = &(s->command_list[index+1]);
+          cmd_ptr->u.command[0] = previous;
+          cmd_ptr->u.command[1] = next; //am i doing this right?
+          //construct 
+        }
 
+        else
+        {
+        }
+      } 
+      else
+      {
+      }
+    }
+    else if(strcmp(";", s->command_list[index])==0)
+    {
+      if(index+1 <= list_size-1 && index-1 >=0 )
+      {
+        if(noSpecialChar(s->command_list[index+1]))
+        {
+          cmd_ptr->type = SEQUENCE_COMMAND;
+          cmd_ptr->status = 0;
+          struct command *previous = NULL;
+          struct command *next = NULL;
+          previous->u.word = &(s->command_list[index-1]);
+          next->u.word = &(s->command_list[index+1]);
+          cmd_ptr->u.command[0] = previous;
+          cmd_ptr->u.command[1] = next; 
+        }				
+        else
+        {
+        }
+      }
+      else
+      {	
+      }
+    }
+    else if(strcmp("|", s->command_list[index])==0)
+    {
+      if(index+1 <= list_size-1 && s->cmd_count-1 >=0 )
+      {
+        if(noSpecialChar(s->command_list[index+1]))
+        {
+          cmd_ptr->type = PIPE_COMMAND;
+          cmd_ptr->status = 0;
+          struct command *previous = NULL;
+          struct command *next = NULL;
+          previous->u.word = &(s->command_list[index-1]);
+          next->u.word = &(s->command_list[index+1]);
+          cmd_ptr->u.command[0] = previous;
+          cmd_ptr->u.command[1] = next; 
+        }				
+        else
+        {
+        }
+      }
+    }
+    else if(strcmp("(", s->command_list[index])==0)
+    {
+      if(index+1 <= list_size-1)
+      {
+        if(noSpecialChar(s->command_list[index+1]))
+        {
+          cmd_ptr->type = SUBSHELL_COMMAND;
+          cmd_ptr->status = 0;
 
-				}
-			} 
-			else
-			{
+          //cmd_ptr->u.subshell_command = s->command_list[index];
+        }
+      }
+    }
+    else if(strcmp(")", s->command_list[index])==0)
+    {
 
-			}
+    }
+    else
+    {
+      for(i = 0; i < strlen(s->command_list[index]); i++)
+      {
+        if(!isValidChar(s->command_list[index][i]))
+        {
+          //print error, abort
+        }
+      }
+      //valid command; execute
+    }
 
-		}
-		else if(strcmp(";", s[cmd_count])==0)
-		{
-			if(cmd_count+1 <= s->size-1 && cmd_count-1 >= 0){
-				
-				if(noSpecialChar(s[cmd_count+1]))
-				{
-					cmd_ptr->type = SEQUENCE_COMMAND;
-					cmd_ptr->status = 0;
-					command *previous;
+    s->cmd_count++;
+    return cmd_ptr;
+  }
+  else
+  {
+    //check for matching number of left and right 
+    //parentheses
 
-					command *next;
-					previous = s[cmd_count-1];
-					next = s[cmd_count+1];
-					cmd_ptr->u.command[0] = previous;
-					cmd_ptr->u.command[1] = next;
-				}
-				else
-				{
-
-				}
-			}
-			else
-			{	
-
-			}
-		}
-		else if(strcmp("|", s[cmd_count])==0)
-		{
-			if(cmd_count+1 <= s->size-1 && cmd_count-1 >= 0){
-				if(noSpecialChar(s[cmd_count+1]))
-				{
-					cmd_ptr->type = PIPE_COMMAND;
-					cmd_ptr->status = 0;
-					command *previous;
-					command *next;
-					previous = s[cmd_count-1];
-					next = s[cmd_count+1];
-					cmd_ptr->u.command[0] = previous;
-					cmd_ptr->u.command[1] = next;
-				}
-			}
-
-		}
-		else if(strcmp("(", s[cmd_count])==0)
-		{
-			if(cmd_count+1 <= s->size-1){
-				if(noSpecialChar(s[cmd_count+1]))
-				{
-					cmd_ptr->type = SUBSHELL_COMMAND;
-					cmd_ptr->status = 0;
-					cmd_ptr->u.subshell_command = s[cmd_count];
-					
-				}
-				else if(strcmp(")", s[cmd_count])==0)
-				{
-
-				}
-				else if(strcmp("<", s[cmd_count])==0) 
-				{
-
-				}
-
-				else if(strcmp(">", s[cmd_count])==0)
-				{
-						
-
-
-				}
-				else
-				{
-					for(i = 0; i < strlen(s[cmd_count]); i++)
-					{
-						if(!isValidChar(s[cmd_count][i]))
-						{
-							//print error, abort
-						}
-					}
-					//valid command; execute
-				}
-
-				s->cmd_count++;
-			}
-			else
-			{
-				//check for matching number of left and right 
-				//parentheses
-				
-
-			}
-
-			return 0;
-		}
+    return NULL;
   }
 }
+
