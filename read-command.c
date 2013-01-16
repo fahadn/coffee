@@ -320,10 +320,16 @@ object is returned, and the next time
 	
 	while(!(strcmp("\n", s->command_list[index]) == 0))
 	{
-		
+
+		printf("inside loop\n");
+		if(next_cmd_direction == 'l')
+		{
+			cmd_ptr =  special_ptr;
+		}
+
 		index = s->cmd_count;
 
-		if(index >= list_size-1){
+		if(index > list_size-1){
 			//unexpected error
 		}
 		/* while not a newline,
@@ -358,9 +364,32 @@ object is returned, and the next time
 			word_list_size++;
 		}
 
+
+
+
+		//if next command is a \n or special char, and if so, 
+		// constructs a new command,
+		// appends word to command,
+		// appends command to special
+		
+		if(index+1 < list_size)
+		{
+			//if the next command is a \n or special char,
+			if(strcmp("\n", s->command_list[index+1])==0 
+					|| is_special_char(s->command_list[index+1]))
+					{
+						
+
+					}
+
+
+
+		}
+
 		s->cmd_count++;
 	}
 	
+	build_word_command(word_list, &cmd_ptr);
 	return cmd_ptr;
 	// did reach a \n
 }
