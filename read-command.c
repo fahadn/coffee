@@ -211,7 +211,7 @@ bool isValidChar(char c){
 	return false;
 }
 
-bool noSpecialChar(char *c)
+bool is_special_char(char *c)
 {
 	//determines whether a special character obeys grammar rules
 	if(strcmp(c, "&&")==0) return false;
@@ -263,7 +263,7 @@ void build_special_command(enum command_type type, struct command **cmd_ptr)
 }
 
 // Add command word to array list
-void add_cmd_to_list(char* cmd, char*** list, int list_size)
+bool add_cmd_to_list(char* cmd, char*** list, int list_size)
 {
 	cmd = cmd;
 	list = list;
@@ -272,7 +272,7 @@ void add_cmd_to_list(char* cmd, char*** list, int list_size)
 
 
 // Add list of array to direction of special command(&& || | ;)
-void add_list_to_special(command_t ** cmd, command_t** special, char dir)
+bool add_cmd_to_special(command_t* cmd, command_t** special, char dir)
 {
 	cmd = cmd;
 	special = special;
@@ -291,6 +291,65 @@ Given: array of pointers to c strings (command_stream)
 Output: singular constructed command objects such that
 when read_command_stream is called one command
 object is returned, and the next time it is 
-called the second command object is returned, etc.
+called the second command object is returned, etc. command
+object is returned, and the next time 
 	 */
+	
+	int index = s->cmd_count;
+	int list_size = s->size;
+
+	char next_cmd_direction = 'l';
+
+	char** word_list = NULL;
+	int word_list_size = 0;
+	int tmp;
+	
+  struct command* special_ptr = NULL;
+	struct command* cmd_ptr = NULL;
+	
+	while(!(strcmp("\n", s->command_list[index]) == 0))
+	{
+		
+		index = s->cmd_count;
+
+		if(index >= list_size-1){
+			//unexpected error
+		}
+		/* while not a newline,
+				
+					if(special command)
+							build_special command
+							add_command to special(l)
+							toggle left to right, etc.
+					else
+						append to **word list
+*/
+		if(strcmp("&&", s->command_list[index]) == 0)
+		{
+			build_special_command(AND_COMMAND, &special_ptr);
+			build_word_command(word_list, &cmd_ptr);
+			if(next_cmd_direction == 'l')
+			{
+
+				add_cmd_to_special(cmd_ptr, &special_ptr, next_cmd_direction);
+				next_cmd_direction = 'r'
+			}
+			else
+			{
+				add_cmd_to_special(cmd_ptr, &special_ptr, next_cmd_direction);
+				next_cmd_direction = 'l'
+			}
+
+		}
+		else
+		{
+			tmp =	add_cmd_to_list(s->command_list[index], word_list, word_list_size);
+			word_list_size++;
+		}
+
+		s->cmd_count++;
+	}
+	
+
+	// did reach a \n
 }
