@@ -227,7 +227,21 @@ bool noSpecialChar(char *c)
 	return true;
 }
 
-void andOrPipeBuilder(command_stream_t s, int index, enum command_type type, struct command **cmd_ptr)
+
+
+
+
+//place interface code here
+
+// Make command object out of word
+void build_word_command(char** word, struct command **cmd_ptr)
+{
+	word = word;
+	cmd_ptr = cmd_ptr;
+}
+
+// Make special command object given enum AND_COMMAND OR_COMMAND PIPE_COMMAND SEQUENCE_COMMAND
+void build_special_command(enum command_type type, struct command **cmd_ptr)
 {
 	(*cmd_ptr)->type = type;
 	(*cmd_ptr)->status = 0;
@@ -235,25 +249,35 @@ void andOrPipeBuilder(command_stream_t s, int index, enum command_type type, str
 	struct command *next = (struct command*) malloc(sizeof(struct command));
 
 	char **tmp_prev = NULL;
-	tmp_prev = (char**) realloc(tmp_prev, (1*sizeof(char**)));
-	tmp_prev[0] = strdup(s->command_list[index-1]);
+	//tmp_prev = (char**) realloc(tmp_prev, (1*sizeof(char**)));
+	//tmp_prev[0] = strdup(s->command_list[index-1]);
 	char **tmp_next = NULL;
-	tmp_next = (char**) realloc(tmp_next, (1*sizeof(char**)));
-	tmp_next[0] = strdup(s->command_list[index+1]);
+	//tmp_next = (char**) realloc(tmp_next, (1*sizeof(char**)));
+	//tmp_next[0] = strdup(s->command_list[index+1]);
 	previous->u.word = tmp_prev;
-	previous->type = SIMPLE_COMMAND;
+	//previous->type = SIMPLE_COMMAND;
 	next->u.word = tmp_next;
-	next->type = SIMPLE_COMMAND;
+	//next->type = SIMPLE_COMMAND;
 	(*cmd_ptr)->u.command[0] = previous;
 	(*cmd_ptr)->u.command[1] = next;
 }
 
+// Add command word to array list
+void add_cmd_to_list(char* cmd, char*** list, int list_size)
+{
+	cmd = cmd;
+	list = list;
+	list_size = list_size;
+}
 
 
-//place interface code here
-
-
-
+// Add list of array to direction of special command(&& || | ;)
+void add_list_to_special(command_t ** cmd, command_t** special, char dir)
+{
+	cmd = cmd;
+	special = special;
+	dir = dir;
+}
 
 command_t
 read_command_stream (command_stream_t s)
@@ -300,7 +324,7 @@ called the second command object is returned, etc.
 			{
 				if(noSpecialChar(s->command_list[index+1]))
 				{
-					andOrPipeBuilder(s, index, AND_COMMAND, &cmd_ptr);
+					build_special_command(AND_COMMAND, &cmd_ptr);
 				}
 				else
 				{ 
