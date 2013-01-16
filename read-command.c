@@ -236,47 +236,59 @@ bool is_special_char(char *c)
 // Make command object out of word
 void build_word_command(char** word, struct command **cmd_ptr)
 {
-	word = word;
-	cmd_ptr = cmd_ptr;
+  (*cmd_ptr) = (struct command* )malloc(sizeof(struct command));
+  (*cmd_ptr)->type = SIMPLE_COMMAND;
+  (*cmd_ptr)->status = 0;
+  (*cmd_ptr)->input = NULL;
+  (*cmd_ptr)->output = NULL;
+  (*cmd_ptr)->u.word = word;
 }
 
 // Make special command object given enum AND_COMMAND OR_COMMAND PIPE_COMMAND SEQUENCE_COMMAND
 void build_special_command(enum command_type type, struct command **cmd_ptr)
 {
-	(*cmd_ptr)->type = type;
-	(*cmd_ptr)->status = 0;
-	struct command *previous = (struct command*) malloc(sizeof(struct command));
-	struct command *next = (struct command*) malloc(sizeof(struct command));
-
-	char **tmp_prev = NULL;
-	//tmp_prev = (char**) realloc(tmp_prev, (1*sizeof(char**)));
-	//tmp_prev[0] = strdup(s->command_list[index-1]);
-	char **tmp_next = NULL;
-	//tmp_next = (char**) realloc(tmp_next, (1*sizeof(char**)));
-	//tmp_next[0] = strdup(s->command_list[index+1]);
-	previous->u.word = tmp_prev;
-	//previous->type = SIMPLE_COMMAND;
-	next->u.word = tmp_next;
-	//next->type = SIMPLE_COMMAND;
-	(*cmd_ptr)->u.command[0] = previous;
-	(*cmd_ptr)->u.command[1] = next;
+  (*cmd_ptr) = (struct command*)malloc(sizeof(struct command));
+  (*cmd_ptr)->type = type;
+  (*cmd_ptr)->status = 0;
+  (*cmd_ptr)->input = NULL;
+  (*cmd_ptr)->output = NULL;
+  (*cmd_ptr)->u.command[0] = NULL; // Left Command
+  (*cmd_ptr)->u.command[1] = NULL; // Right Command
 }
 
 // Add command word to array list
 bool add_cmd_to_list(char* cmd, char*** list, int list_size)
 {
-	cmd = cmd;
-	list = list;
-	list_size = list_size;
+  char ** bigger_list = (char**)realloc((*list),sizeof(char*));
+  if (bigger_list != NULL) 
+  {
+    (*list) = bigger_list;
+    (*list)[list_size] = strdup(cmd);
+    return true;
+  }
+  return false;
 }
 
 
 // Add list of array to direction of special command(&& || | ;)
-bool add_cmd_to_special(command_t* cmd, command_t** special, char dir)
+bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
 {
-	cmd = cmd;
-	special = special;
-	dir = dir;
+  // Error Check
+  if ((*cmd)->type == AND_COMMAND || (*cmd)->type == SEQUENCE_COMMAND || 
+      (*cmd)->type == OR_COMMAND  || (*cmd)->type == PIPE_COMMAND)
+  {
+    if ((*cmd)->u.command[0] == NULL || (*cmd)->u.command[1] == NULL)
+      return false;
+  }
+  // Add command to special command
+  if (dir == 'l')
+    (*special)->u.command[0] = *cmd;
+  else if (dir == 'r')
+    (*special)->u.command[1] = *cmd;
+  else 
+    return false;
+
+  return true;
 }
 
 command_t
@@ -302,7 +314,6 @@ object is returned, and the next time
 
 	char** word_list = NULL;
 	int word_list_size = 0;
-	int tmp;
 	
   struct command* special_ptr = NULL;
 	struct command* cmd_ptr = NULL;
@@ -331,25 +342,25 @@ object is returned, and the next time
 			if(next_cmd_direction == 'l')
 			{
 
-				add_cmd_to_special(cmd_ptr, &special_ptr, next_cmd_direction);
-				next_cmd_direction = 'r'
+				add_cmd_to_special(&cmd_ptr, &special_ptr, next_cmd_direction);
+				next_cmd_direction = 'r';
 			}
 			else
 			{
-				add_cmd_to_special(cmd_ptr, &special_ptr, next_cmd_direction);
-				next_cmd_direction = 'l'
+				add_cmd_to_special(&cmd_ptr, &special_ptr, next_cmd_direction);
+				next_cmd_direction = 'l';
 			}
 
 		}
 		else
 		{
-			tmp =	add_cmd_to_list(s->command_list[index], word_list, word_list_size);
+			add_cmd_to_list(s->command_list[index], &word_list, word_list_size);
 			word_list_size++;
 		}
 
 		s->cmd_count++;
 	}
 	
-
+	return cmd_ptr;
 	// did reach a \n
 }
