@@ -353,6 +353,8 @@ object is returned, and the next time
 		}
 		else
 		{
+
+			printf("came to the else\n");
 			add_cmd_to_list(s->command_list[index], &word_list, word_list_size);
 			word_list_size++;
 		}
@@ -383,7 +385,8 @@ object is returned, and the next time
     index = s->cmd_count;
 	}
 
- // build_word_command(word_list, &cmd_ptr);
+	if(word_list !=NULL)
+		build_word_command(word_list, &cmd_ptr);
 
 	return cmd_ptr;
 	// did reach a \n
