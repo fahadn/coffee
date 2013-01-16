@@ -52,7 +52,10 @@ int add_command(char*** list, int list_size, char* cmd, int cmd_size)
 	// Append null byte
 	l_cmd[cmd_size] = '\0';
 	// Trim whitespace
-	l_cmd = trim_whitespace(l_cmd);
+  if(cmd[0] != '\n')
+  {
+	  l_cmd = trim_whitespace(l_cmd);
+  }
 	// Add command to list
 	*list = (char**) realloc(*list, (list_size+1)*sizeof(char**));
 	(*list)[list_size] = strdup(l_cmd);
@@ -317,31 +320,20 @@ object is returned, and the next time
 	
   struct command* special_ptr = NULL;
 	struct command* cmd_ptr = NULL;
-	
-	while(!(strcmp("\n", s->command_list[index]) == 0))
-	{
-		
-		index = s->cmd_count;
 
-		if(index >= list_size-1){
+  while( strcmp(s->command_list[index], "\n") != 0 )
+	{
+		if(index > list_size-1)
+    {
+      return NULL;
 			//unexpected error
 		}
-		/* while not a newline,
-				
-					if(special command)
-							build_special command
-							add_command to special(l)
-							toggle left to right, etc.
-					else
-						append to **word list
-*/
 		if(strcmp("&&", s->command_list[index]) == 0)
 		{
 			build_special_command(AND_COMMAND, &special_ptr);
 			build_word_command(word_list, &cmd_ptr);
 			if(next_cmd_direction == 'l')
 			{
-
 				add_cmd_to_special(&cmd_ptr, &special_ptr, next_cmd_direction);
 				next_cmd_direction = 'r';
 			}
@@ -359,8 +351,10 @@ object is returned, and the next time
 		}
 
 		s->cmd_count++;
+    index = s->cmd_count;
 	}
-	
+
+ // build_word_command(word_list, &cmd_ptr);
 	return cmd_ptr;
 	// did reach a \n
 }
