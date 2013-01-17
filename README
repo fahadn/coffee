@@ -13,7 +13,8 @@ Lab1A
 - will be implementing error check and pipes soon.
 
 Bugs:
-  - | and & erases character immediately after, ie a|b erases b
   - memory management isn't robust, ie. all set to 100*sizeof
   - does not handle ()
+  - does not handle < > syntax
+  - case: cat < /etc/passwd should be cat</etc/passwd
 
