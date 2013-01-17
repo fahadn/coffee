@@ -10,228 +10,241 @@
 
 
 /* FIXME: You may need to add #include directives, macro definitions,
-	 static function definitions, etc.  */
+   static function definitions, etc.  */
 
 /* FIXME: Define the type 'struct command_stream' here.  This should
-	 complete the incomplete type declaration in command.h.  */
+   complete the incomplete type declaration in command.h.  */
 
 typedef struct command_stream 
 {
-	// Array of pointers pointing to c-strings
-	int size;
-	int cmd_count;
-	char** command_list;
+  // Array of pointers pointing to c-strings
+  short size;
+  short cmd_count;
+  short line_count;
+  char** command_list;
 } command_stream;
 
 // Trim whitespace off commands
 char* trim_whitespace(char* str)
 {
-	char *end;
-	while(isspace(*str)) str++;
-	end = str + strlen(str) - 1;
-	while(end > str && isspace(*end)) end--;
-	*(end+1) = 0;
-	return str;
+  char *end;
+  while(isspace(*str)) str++;
+  end = str + strlen(str) - 1;
+  while(end > str && isspace(*end)) end--;
+  *(end+1) = 0;
+  return str;
 }
 
 // Add command to command stream
 int add_command(char*** list, int list_size, char* cmd, int cmd_size)
 {
-	if (cmd == NULL || *list == NULL) 
-	{
-		return 0;
-	}
+  if (cmd == NULL || *list == NULL) 
+  {
+    return 0;
+  }
 
-	int i = 0;
+  int i = 0;
 
-	char *l_cmd = (char*) malloc(cmd_size+1);
-	for (i = 0; i < cmd_size; i++)
-	{
-		l_cmd[i] = cmd[i];
-	}
-	// Append null byte
-	l_cmd[cmd_size] = '\0';
-	// Trim whitespace
+  char *l_cmd = (char*) malloc(cmd_size+1);
+  for (i = 0; i < cmd_size; i++)
+  {
+    l_cmd[i] = cmd[i];
+  }
+  // Append null byte
+  l_cmd[cmd_size] = '\0';
+  // Trim whitespace
   if(cmd[0] != '\n')
   {
-	  l_cmd = trim_whitespace(l_cmd);
+    l_cmd = trim_whitespace(l_cmd);
   }
-	// Add command to list
-	*list = (char**) realloc(*list, (list_size+1)*sizeof(char**));
-	(*list)[list_size] = strdup(l_cmd);
+  // Add command to list
+  *list = (char**) realloc(*list, (list_size+1)*sizeof(char**));
+  (*list)[list_size] = strdup(l_cmd);
 
-	return 1;
+  return 1;
 }
 
 int is_valid_op(char op, char last_op) 
 {
-	return (op == '\n' || op == ';' || op == '#' || op == '(' || op == ')' ||
-			op == '&'  || op == '|' || last_op == '&' || last_op == '|');
+  return (op == '\n' || op == ' ' || op == ';' || op == '#' || op == '(' || op == ')' ||
+      op == '&'  || op == '|' || last_op == '&' || last_op == '|');
 }
 
-	command_stream_t
+  command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
-		void *get_next_byte_argument)
+    void *get_next_byte_argument)
 {
-	/* FIXME: Replace this with your implementation.  You may need to
-		 add auxiliary functions and otherwise modify the source code.
-		 You can also use external functions defined in the GNU C Library.  */
+  /* FIXME: Replace this with your implementation.  You may need to
+     add auxiliary functions and otherwise modify the source code.
+     You can also use external functions defined in the GNU C Library.  */
 
-	// initialize memory allocation
-	// count of characters
-	int pt_count = 0;
-	int cmd_count = 0;
-	int i = 0;
-	char input_byte;
-	char prev_byte;
-	char *tmp = NULL;
-	char *tmp_ch = NULL;
-	command_stream_t result_stream = (struct command_stream*) malloc(sizeof(struct command_stream*));
+  // initialize memory allocation
+  // count of characters
+  int pt_count = 0;
+  int cmd_count = 0;
+  char input_byte;
+  char prev_byte;
+  char *tmp = NULL;
+  char *tmp_ch = NULL;
+  command_stream_t result_stream = (struct command_stream*) malloc(sizeof(struct command_stream*));
+  result_stream->size = 0;
+  result_stream->cmd_count = 0;
+  result_stream->line_count = 1;
 
-	// Initalize memory allocation for stream
-	result_stream->command_list = (char**) malloc(sizeof(char**));
-	result_stream->command_list[0] = NULL;
+  // Initalize memory allocation for stream
+  result_stream->command_list = (char**) malloc(sizeof(char**));
+  result_stream->command_list[0] = NULL;
 
-	// initialize stream
-	input_byte = (char)get_next_byte(get_next_byte_argument);
+  // initialize stream
+  input_byte = (char)get_next_byte(get_next_byte_argument);
 
-	// Reallocate memory for stream characters
-	// Record stream
-	while (input_byte != EOF)
-	{    
-		if (is_valid_op(input_byte, prev_byte))
-		{
-			// Add command
-			if (tmp_ch != NULL) 
-			{
-				add_command(&(result_stream->command_list), pt_count++, tmp_ch, cmd_count);
-				free(tmp_ch);
-				tmp_ch = NULL;
-			}
-			// Operator Cases
-			if (input_byte == '#') 
-			{
-				// Append # comment to next command
-				tmp_ch = (char*) malloc(sizeof(char));
-				tmp_ch[0] = input_byte;
-			}
-			else if (input_byte == '|' && prev_byte != '|')
-			{
-			}
-			else if (input_byte != '|' && prev_byte == '|')
-			{
-				// Add operator 
-				add_command(&(result_stream->command_list), pt_count++, "|", 1);
-			}
-			else if (input_byte == '|' && prev_byte == '|')
-			{
-				// Add operator 
-				add_command(&(result_stream->command_list), pt_count++, "||", 2);
-				// prevent from being read again
-				input_byte = ' ';
-			}
-			else if (input_byte == '&' && prev_byte != '&')
-			{
-			}
-			else if (input_byte != '&' && prev_byte == '&')
-			{
-				// Add operator 
-				add_command(&(result_stream->command_list), pt_count++, "&", 1);
-			}
-			else if (input_byte == '&' && prev_byte == '&')
-			{
-				// Add operator 
-				add_command(&(result_stream->command_list), pt_count++, "&&", 2);
-				// prevent from being read again
-				input_byte = ' ';
-			}
-			else
-			{
-				// Add operator 
-				tmp = (char*) malloc(sizeof(char));
-				tmp[0] = input_byte;
-				add_command(&(result_stream->command_list), pt_count++, tmp, 1);
-				free(tmp);
-			} 
-			// Reset for next add
-			if(input_byte == '#')
-			{
-				cmd_count = 1;
-			}
-			else
-			{
-				cmd_count = 0;
-			}
-			prev_byte = input_byte;
-			input_byte = get_next_byte(get_next_byte_argument);
-			continue;
-		}
-		if (input_byte == '#') 
-		{
-			// Reset
-			prev_byte = input_byte;
-			input_byte = get_next_byte(get_next_byte_argument);
-			continue;
-		}
-		// Allocate for command until delimiter found
-		tmp_ch = (char*) realloc(tmp_ch, (cmd_count+1)*sizeof(char));
-		tmp_ch[cmd_count] = input_byte;
-		cmd_count++;
+  // Reallocate memory for stream characters
+  // Record stream
+  while (input_byte != EOF)
+  {    
+    if (is_valid_op(input_byte, prev_byte))
+    {
+      // Add command
+      if (tmp_ch != NULL) 
+      {
+        add_command(&(result_stream->command_list), pt_count++, tmp_ch, cmd_count);
+        free(tmp_ch);
+        tmp_ch = NULL;
+      }
+      // Operator Cases
+      if (input_byte == '#') 
+      {
+        // Append # comment to next command
+        tmp_ch = (char*) malloc(sizeof(char));
+        tmp_ch[0] = input_byte;
+      }
+      else if (input_byte == '|' && prev_byte != '|')
+      {
+      }
+      else if (input_byte != '|' && prev_byte == '|')
+      {
+        // Add operator 
+        add_command(&(result_stream->command_list), pt_count++, "|", 1);
+        tmp_ch = (char*) realloc(tmp_ch, (cmd_count+1)*sizeof(char));
+        tmp_ch[cmd_count] = input_byte;
+        cmd_count = 1;
+      }
+      else if (input_byte == '|' && prev_byte == '|')
+      {
+        // Add operator 
+        add_command(&(result_stream->command_list), pt_count++, "||", 2);
+        // prevent from being read again
+        input_byte = ' ';
+      }
+      else if (input_byte == '&' && prev_byte != '&')
+      {
+      }
+      else if (input_byte != '&' && prev_byte == '&')
+      {
+        // Add operator 
+        add_command(&(result_stream->command_list), pt_count++, "&", 1);
+      }
+      else if (input_byte == '&' && prev_byte == '&')
+      {
+        // Add operator 
+        add_command(&(result_stream->command_list), pt_count++, "&&", 2);
+        // prevent from being read again
+        input_byte = ' ';
+      }
+      else if (input_byte == ' ')
+      {
+      }
+      else
+      {
+        // Add operator 
+        tmp = (char*) malloc(sizeof(char));
+        tmp[0] = input_byte;
+        add_command(&(result_stream->command_list), pt_count++, tmp, 1);
+        free(tmp);
+      } 
+      // Reset for next add
+      if(input_byte == '#')
+      {
+        cmd_count = 1;
+      }
+      else
+      {
+        cmd_count = 0;
+      }
+      prev_byte = input_byte;
+      input_byte = get_next_byte(get_next_byte_argument);
+      continue;
+    }
+    if (input_byte == '#') 
+    {
+      // Reset
+      prev_byte = input_byte;
+      input_byte = get_next_byte(get_next_byte_argument);
+      continue;
+    }
+    // Allocate for command until delimiter found
+    tmp_ch = (char*) realloc(tmp_ch, (cmd_count+1)*sizeof(char));
+    tmp_ch[cmd_count] = input_byte;
+    cmd_count++;
 
-		prev_byte = input_byte;
-		input_byte = get_next_byte(get_next_byte_argument);
-	}
+    prev_byte = input_byte;
+    input_byte = get_next_byte(get_next_byte_argument);
+  }
 
-	result_stream->size = pt_count;
+  result_stream->size = pt_count;
 
-	// Test print
-	for (i=0; i < pt_count; i++)
-	{
-		printf("%d: %s\n", i, result_stream->command_list[i]);
-	}
-	printf("\npt_count: %d \n", pt_count);
+  // Test print
+  //int i = 0;
+  //for (i=0; i < pt_count; i++)
+  {
+  //  printf("%d: %s\n", i, result_stream->command_list[i]);
+  }
+  //printf("\npt_count: %d \n", pt_count);
 
-	// Returns stream as character array
-	return result_stream;
+  // Returns stream as character array
+  return result_stream;
 }
 
-bool isValidChar(char c){
-	//checks whether character is valid given requirements in spec
-	char valid_chars[19] = { '!', '%', '+', ',', '-', '.', '/', ':', '@', '^', '_', ';',
-		'|', '&', '(', ')', '<', '>', '#'};
-	size_t i = 0;
-	for(i = 0; i < strlen(valid_chars); i++)
-	{
-		if(c == valid_chars[i]) 
-		{
-			return true;
-		}
-	}
-	if(isalnum(c)) 
-	{
-		return true;
-	}
-	return false;
+bool is_valid_char(char* c){
+  //checks whether character is valid given requirements in spec
+  char valid_chars[19] = { '!', '%', '+', ',', '-', '.', '/', ':', '@', '^', '_', ';',
+    '|', '&', '(', ')', '<', '>', '#'};
+  size_t i = 0;
+  size_t j = 0;
+  for (j = 0; j < strlen(c); j++)
+  {
+    for(i = 0; i < 19; i++)
+    {
+      if(c[j] == valid_chars[i]) 
+      {
+        return true;
+      }
+    }
+    if(isalnum(c[j])) 
+    {
+      return true;
+    }
+  } 
+  return false;
 }
 
 bool is_special_char(char *c)
 {
-	//determines whether a special character obeys grammar rules
-	if(strcmp(c, "&&")==0) return false;
-	else if(strcmp(c, "||")==0) return false;	
-	else if(strcmp(c, "|")==0) return false;
-	else if(strcmp(c, "&")==0) return false;
-	else if(strcmp(c, ";")==0) return false;
-	else if(strcmp(c, "<")==0) return false;
-	else if(strcmp(c, ">")==0) return false;
-	else if(strcmp(c, ")")==0) return false;
-	else if(strcmp(c, "(")==0) return false;
+  //determines whether a special character obeys grammar rules
 
-	return true;
+  if(strcmp(c, "&&") == 0 ||
+      strcmp(c, "||") == 0 ||
+      strcmp(c, "|" ) == 0 ||
+      strcmp(c, "&" ) == 0 ||
+      strcmp(c, ";" ) == 0 ||
+     // strcmp(c, "<" ) == 0 ||
+     // strcmp(c, ">" ) == 0 ||
+      strcmp(c, ")" ) == 0 ||
+      strcmp(c, "(" ) == 0 )
+    return true;
+
+  return false;
 }
-
-
-
 
 
 //place interface code here
@@ -239,6 +252,8 @@ bool is_special_char(char *c)
 // Make command object out of word
 void build_word_command(char** word, struct command **cmd_ptr)
 {
+  if (word == NULL)
+    return;
   (*cmd_ptr) = (struct command* )malloc(sizeof(struct command));
   (*cmd_ptr)->type = SIMPLE_COMMAND;
   (*cmd_ptr)->status = 0;
@@ -248,10 +263,19 @@ void build_word_command(char** word, struct command **cmd_ptr)
 }
 
 // Make special command object given enum AND_COMMAND OR_COMMAND PIPE_COMMAND SEQUENCE_COMMAND
-void build_special_command(enum command_type type, struct command **cmd_ptr)
+void build_special_command(char* type, struct command **cmd_ptr)
 {
-  (*cmd_ptr) = (struct command*)malloc(sizeof(struct command));
-  (*cmd_ptr)->type = type;
+  if (type == NULL)
+    return;
+  (*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
+  if (strcmp(type,"&&") == 0)
+    (*cmd_ptr)->type = AND_COMMAND;
+  else if (strcmp(type,"||") == 0)
+    (*cmd_ptr)->type = OR_COMMAND;
+  else if (strcmp(type,"|") == 0)
+    (*cmd_ptr)->type = PIPE_COMMAND;
+  else if (strcmp(type,";") == 0)
+    (*cmd_ptr)->type = SEQUENCE_COMMAND;
   (*cmd_ptr)->status = 0;
   (*cmd_ptr)->input = NULL;
   (*cmd_ptr)->output = NULL;
@@ -262,11 +286,16 @@ void build_special_command(enum command_type type, struct command **cmd_ptr)
 // Add command word to array list
 bool add_cmd_to_list(char* cmd, char*** list, int list_size)
 {
-  char ** bigger_list = (char**)realloc((*list),sizeof(char*));
-  if (bigger_list != NULL) 
+  *list = (char**)realloc((*list), (list_size+100)*sizeof(char*));
   {
-    (*list) = bigger_list;
-    (*list)[list_size] = strdup(cmd);
+    if (cmd == NULL)
+    {
+      (*list)[list_size] = NULL;
+    }
+    else
+    {
+      (*list)[list_size] = strdup(cmd);
+    }
     return true;
   }
   return false;
@@ -283,6 +312,8 @@ bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
     if ((*cmd)->u.command[0] == NULL || (*cmd)->u.command[1] == NULL)
       return false;
   }
+  if (cmd == NULL || special == NULL)
+    return false;
   // Add command to special command
   if (dir == 'l')
     (*special)->u.command[0] = *cmd;
@@ -294,97 +325,117 @@ bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
   return true;
 }
 
-command_t
+void syn_error(command_stream_t s)
+{
+  fprintf(stderr, "syntax error on line: %d\n", s->line_count);
+  exit(0);
+}
+
+  command_t
 read_command_stream (command_stream_t s)
 {
-	/* 
-		 take a command stream, return a command_t object to be used
-		 by main.c
-		 Read a command from STREAM; return it, or NULL on EOF.  If there is`
-		 an error, report the error and exit instead of returning.  
+  /* 
+     take a command stream, return a command_t object to be used
+     by main.c
+     Read a command from STREAM; return it, or NULL on EOF.  If there is`
+     an error, report the error and exit instead of returning.  
 Given: array of pointers to c strings (command_stream)
 Output: singular constructed command objects such that
 when read_command_stream is called one command
 object is returned, and the next time it is 
 called the second command object is returned, etc. command
 object is returned, and the next time 
-	 */
-	
-	int index = s->cmd_count;
-	int list_size = s->size;
+*/
 
-	char next_cmd_direction = 'l';
+  int index = s->cmd_count;
+  int list_size = s->size;
 
-	char** word_list = NULL;
-	int word_list_size = 0;
-	
+  struct command* cmd_ptr = NULL;
   struct command* special_ptr = NULL;
-	struct command* cmd_ptr = NULL;
-	
-	while(!(strcmp("\n", s->command_list[index]) == 0))
-	{
+  char ** word_list = NULL;
+  int word_list_size = 0;
+  char dir = 'l';
 
-		printf("inside loop\n");
-		if(next_cmd_direction == 'l')
-		{
-			cmd_ptr =  special_ptr;
-		}
+  if (index > list_size-1)
+    return NULL;
 
-		index = s->cmd_count;
+  // Skip repeating \n's
+  if (strcmp(s->command_list[index], "\n") == 0 && cmd_ptr == NULL) {
+    while ( strcmp(s->command_list[index], "\n") == 0 )
+    {
+      index++;
+      s->line_count++;
+      if (index > list_size-1)
+        return NULL;
+    }
+  }
+  while ( strcmp(s->command_list[index], "\n") != 0)
+  {
+    // Syntax Check
+    if (!is_valid_char(s->command_list[index]))
+    {
+      syn_error(s);
+    }
+    // For ooerators
+    if(is_special_char(s->command_list[index]))
+    {
+      build_word_command(word_list, &cmd_ptr);
+      word_list = NULL;
+      word_list_size = 0;
+      // Add to left only in first iteration
+      if(dir == 'l')
+      {
+        build_special_command(s->command_list[index], &special_ptr);
+        if (!add_cmd_to_special(&cmd_ptr,&special_ptr, 'l'))
+        {
+          syn_error(s);
+        }
+        dir = 'r';
+      }
+      // Add to further special commands
+      else
+      {
+        if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'r'))
+          syn_error(s);
+        cmd_ptr = special_ptr;
+        special_ptr = NULL;
+        build_special_command(s->command_list[index], &special_ptr);
+        if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'l'))
+          syn_error(s);
+      }
+    }
+    // For Single Words
+    else
+    {
+      // Append to word_list before making commands
+      if(!add_cmd_to_list(s->command_list[index], &word_list, word_list_size))
+        syn_error(s);
+      word_list_size++;
+    }
+    index++;
+  }
 
-		if(index > list_size-1){
-			//unexpected error
-		}
-		if(strcmp("&&", s->command_list[index]) == 0)
-		{
-			build_special_command(AND_COMMAND, &special_ptr);
-			build_word_command(word_list, &cmd_ptr);
-			if(next_cmd_direction == 'l')
-			{
-				add_cmd_to_special(&cmd_ptr, &special_ptr, next_cmd_direction);
-				next_cmd_direction = 'r';
-			}
-			else
-			{
-				add_cmd_to_special(&cmd_ptr, &special_ptr, next_cmd_direction);
-				next_cmd_direction = 'l';
-			}
+  s->cmd_count = index + 1;
+  // If reaming word_list commands and incomplete tree
+  if (special_ptr != NULL)
+  {
+    build_word_command(word_list, &cmd_ptr);
+    word_list_size = 0;
+    word_list = NULL;
+    if(!add_cmd_to_special(&cmd_ptr, &special_ptr, 'r'))
+      syn_error(s);
+    cmd_ptr = special_ptr;
+  }
+  else
+  {
+    // Attach remaining word list commands
+    build_word_command(word_list,&cmd_ptr);
+    word_list = NULL;
+    word_list_size = 0;
+  }
 
-		}
-		else
-		{
-			add_cmd_to_list(s->command_list[index], &word_list, word_list_size);
-			word_list_size++;
-		}
+  // Increment line count
+  s->line_count++;
+  return cmd_ptr;
 
-
-
-
-		//if next command is a \n or special char, and if so, 
-		// constructs a new command,
-		// appends word to command,
-		// appends command to special
-		
-		if(index+1 < list_size)
-		{
-			//if the next command is a \n or special char,
-			if(strcmp("\n", s->command_list[index+1])==0 
-					|| is_special_char(s->command_list[index+1]))
-					{
-						
-
-					}
-
-
-
-		}
-
-		s->cmd_count++;
-    index = s->cmd_count;
-	}
-
- // build_word_command(word_list, &cmd_ptr);
-
-	return cmd_ptr;
-	// did reach a \n
 }
