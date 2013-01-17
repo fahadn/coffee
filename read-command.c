@@ -66,8 +66,10 @@ int add_command(char*** list, int list_size, char* cmd, int cmd_size)
 
 int is_valid_op(char op, char last_op) 
 {
-  return (op == '\n' || op == ' ' || op == ';' || op == '#' || op == '(' || op == ')' ||
-      op == '&'  || op == '|' || last_op == '&' || last_op == '|');
+  return (op == '\n' || op == ' ' || op == ';' || 
+          op == '#'  || op == '(' || op == ')' ||
+          op == '&'  || op == '|' || op == '>' ||
+          op == '<'  || last_op == '&' || last_op == '|');
 }
 
   command_stream_t
@@ -118,6 +120,14 @@ make_command_stream (int (*get_next_byte) (void *),
         tmp_ch = (char*) malloc(sizeof(char));
         tmp_ch[0] = input_byte;
       }
+      else if (input_byte == '|' && prev_byte == '|')
+      {
+        // Add operator 
+        add_command(&(result_stream->command_list), pt_count++, "||", 2);
+        // prevent from being read again
+        input_byte = ' ';
+        prev_byte = ' ';
+      }
       else if (input_byte == '|' && prev_byte != '|')
       {
       }
@@ -125,16 +135,9 @@ make_command_stream (int (*get_next_byte) (void *),
       {
         // Add operator 
         add_command(&(result_stream->command_list), pt_count++, "|", 1);
-        tmp_ch = (char*) realloc(tmp_ch, (cmd_count+1)*sizeof(char));
-        tmp_ch[cmd_count] = input_byte;
-        cmd_count = 1;
-      }
-      else if (input_byte == '|' && prev_byte == '|')
-      {
-        // Add operator 
-        add_command(&(result_stream->command_list), pt_count++, "||", 2);
-        // prevent from being read again
-        input_byte = ' ';
+        // Add current
+        tmp_ch = (char*) malloc(sizeof(char));
+        tmp_ch[0] = input_byte;
       }
       else if (input_byte == '&' && prev_byte != '&')
       {
@@ -143,6 +146,9 @@ make_command_stream (int (*get_next_byte) (void *),
       {
         // Add operator 
         add_command(&(result_stream->command_list), pt_count++, "&", 1);
+        // Add current
+        tmp_ch = (char*) malloc(sizeof(char));
+        tmp_ch[0] = input_byte;
       }
       else if (input_byte == '&' && prev_byte == '&')
       {
@@ -150,6 +156,7 @@ make_command_stream (int (*get_next_byte) (void *),
         add_command(&(result_stream->command_list), pt_count++, "&&", 2);
         // prevent from being read again
         input_byte = ' ';
+        prev_byte = ' ';
       }
       else if (input_byte == ' ')
       {
@@ -163,7 +170,9 @@ make_command_stream (int (*get_next_byte) (void *),
         free(tmp);
       } 
       // Reset for next add
-      if(input_byte == '#')
+      if( (prev_byte == '|' && input_byte != '|') || 
+          (prev_byte == '&' && input_byte != '&') ||
+          input_byte == '#' )
       {
         cmd_count = 1;
       }
@@ -194,12 +203,12 @@ make_command_stream (int (*get_next_byte) (void *),
   result_stream->size = pt_count;
 
   // Test print
-  //int i = 0;
-  //for (i=0; i < pt_count; i++)
+  int i = 0;
+  for (i=0; i < pt_count; i++)
   {
-  //  printf("%d: %s\n", i, result_stream->command_list[i]);
+    printf("%d: %s \n", i, result_stream->command_list[i]);
   }
-  //printf("\npt_count: %d \n", pt_count);
+  printf("\npt_count: %d \n", pt_count);
 
   // Returns stream as character array
   return result_stream;
@@ -237,8 +246,8 @@ bool is_special_char(char *c)
       strcmp(c, "|" ) == 0 ||
       strcmp(c, "&" ) == 0 ||
       strcmp(c, ";" ) == 0 ||
-     // strcmp(c, "<" ) == 0 ||
-     // strcmp(c, ">" ) == 0 ||
+      strcmp(c, "<" ) == 0 ||
+      strcmp(c, ">" ) == 0 ||
       strcmp(c, ")" ) == 0 ||
       strcmp(c, "(" ) == 0 )
     return true;
@@ -250,24 +259,24 @@ bool is_special_char(char *c)
 //place interface code here
 
 // Make command object out of word
-void build_word_command(char** word, struct command **cmd_ptr)
+bool build_word_command(char** word, struct command **cmd_ptr)
 {
   if (word == NULL)
-    return;
+    return false;
   (*cmd_ptr) = (struct command* )malloc(sizeof(struct command));
   (*cmd_ptr)->type = SIMPLE_COMMAND;
   (*cmd_ptr)->status = 0;
   (*cmd_ptr)->input = NULL;
   (*cmd_ptr)->output = NULL;
   (*cmd_ptr)->u.word = word;
+  return true;
 }
 
 // Make special command object given enum AND_COMMAND OR_COMMAND PIPE_COMMAND SEQUENCE_COMMAND
-void build_special_command(char* type, struct command **cmd_ptr)
+bool build_special_command(char* type, struct command **cmd_ptr)
 {
   if (type == NULL)
-    return;
-  (*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
+    return false;
   if (strcmp(type,"&&") == 0)
     (*cmd_ptr)->type = AND_COMMAND;
   else if (strcmp(type,"||") == 0)
@@ -276,11 +285,29 @@ void build_special_command(char* type, struct command **cmd_ptr)
     (*cmd_ptr)->type = PIPE_COMMAND;
   else if (strcmp(type,";") == 0)
     (*cmd_ptr)->type = SEQUENCE_COMMAND;
+  else 
+    return false;
+  (*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
   (*cmd_ptr)->status = 0;
   (*cmd_ptr)->input = NULL;
   (*cmd_ptr)->output = NULL;
   (*cmd_ptr)->u.command[0] = NULL; // Left Command
   (*cmd_ptr)->u.command[1] = NULL; // Right Command
+  return true;
+
+
+}
+
+bool build_sub_command(command_t* cmd, struct command **cmd_ptr)
+{
+  if (cmd == NULL)
+    return false;
+  (*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));  
+  (*cmd_ptr)->status = 0;
+  (*cmd_ptr)->input = NULL;
+  (*cmd_ptr)->output = NULL;
+  (*cmd_ptr)->u.subshell_command = *cmd;
+  return true;
 }
 
 // Add command word to array list
@@ -328,7 +355,7 @@ bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
 void syn_error(command_stream_t s)
 {
   fprintf(stderr, "syntax error on line: %d\n", s->line_count);
-  exit(0);
+  exit(1);
 }
 
   command_t
@@ -355,6 +382,7 @@ object is returned, and the next time
   char ** word_list = NULL;
   int word_list_size = 0;
   char dir = 'l';
+  //bool in_sub_cmd = false;
 
   if (index > list_size-1)
     return NULL;
@@ -376,20 +404,53 @@ object is returned, and the next time
     {
       syn_error(s);
     }
+
     // For ooerators
     if(is_special_char(s->command_list[index]))
     {
-      build_word_command(word_list, &cmd_ptr);
+      // Sub command check
+      /*
+      if (strcmp(s->command_list[index], "(" ) == 0)
+      {
+        in_sub_cmd = true;
+        index++;
+        continue;
+      }
+      */
+      // Build command from list
+      if (!build_word_command(word_list, &cmd_ptr))
+        syn_error(s);
       word_list = NULL;
       word_list_size = 0;
+
+      /*
+      // Sub command end check
+      if (strcmp(s->command_list[index], ")" ) == 0)
+      {
+        if(!in_sub_cmd)
+          syn_error(s);
+        // If there is a remaining operator tree
+        if (special_ptr != NULL)
+        {
+          if(!add_cmd_to_special(&cmd_ptr, &special_ptr, 'r'))
+            syn_error(s);
+          cmd_ptr = special_ptr;
+        }
+        if(!build_sub_command(&cmd_ptr, &special_ptr))
+          syn_error(s);
+        cmd_ptr = special_ptr;
+        special_ptr = NULL;
+        in_sub_cmd = false;
+      }
+      else
+      */
       // Add to left only in first iteration
       if(dir == 'l')
       {
-        build_special_command(s->command_list[index], &special_ptr);
-        if (!add_cmd_to_special(&cmd_ptr,&special_ptr, 'l'))
-        {
+        if (!build_special_command(s->command_list[index], &special_ptr))
           syn_error(s);
-        }
+        if (!add_cmd_to_special(&cmd_ptr,&special_ptr, 'l'))
+          syn_error(s);
         dir = 'r';
       }
       // Add to further special commands
@@ -399,7 +460,8 @@ object is returned, and the next time
           syn_error(s);
         cmd_ptr = special_ptr;
         special_ptr = NULL;
-        build_special_command(s->command_list[index], &special_ptr);
+        if (!build_special_command(s->command_list[index], &special_ptr))
+          syn_error(s);
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'l'))
           syn_error(s);
       }
@@ -416,22 +478,17 @@ object is returned, and the next time
   }
 
   s->cmd_count = index + 1;
+  if (!build_word_command(word_list, &cmd_ptr))
+    syn_error(s);
+  word_list_size = 0;
+  word_list = NULL;
+
   // If reaming word_list commands and incomplete tree
   if (special_ptr != NULL)
   {
-    build_word_command(word_list, &cmd_ptr);
-    word_list_size = 0;
-    word_list = NULL;
     if(!add_cmd_to_special(&cmd_ptr, &special_ptr, 'r'))
       syn_error(s);
     cmd_ptr = special_ptr;
-  }
-  else
-  {
-    // Attach remaining word list commands
-    build_word_command(word_list,&cmd_ptr);
-    word_list = NULL;
-    word_list_size = 0;
   }
 
   // Increment line count
