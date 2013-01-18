@@ -255,9 +255,6 @@ bool is_special_char(char *c)
   return false;
 }
 
-
-//place interface code here
-
 // Make command object out of word
 bool build_word_command(char** word, struct command **cmd_ptr)
 {
@@ -309,6 +306,7 @@ bool build_special_command(char* type, struct command **cmd_ptr)
 
 }
 
+// Add cmd to sub command
 bool build_sub_command(command_t* cmd, struct command **cmd_ptr)
 {
   if (cmd == NULL)
@@ -360,6 +358,26 @@ bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
   else 
     return false;
 
+  return true;
+}
+
+// Add cmd to input/output
+bool add_word_to_IO(char* word, command_t* cmd, char io)
+{
+  if(cmd == NULL || word == NULL)
+    return false;
+  if (io == 'i')
+  {
+    (*cmd)->input = (char*)malloc(strlen(word)*sizeof(char));
+    (*cmd)->input = word;
+  }
+  else if (io == 'o')
+  {
+    (*cmd)->output = (char*)malloc(strlen(word)*sizeof(char));
+    (*cmd)->output = word;
+  }
+  else
+    return false;
   return true;
 }
 
@@ -420,42 +438,12 @@ object is returned, and the next time
     // For ooerators
     if(is_special_char(s->command_list[index]))
     {
-      // Sub command check
-      /*
-         if (strcmp(s->command_list[index], "(" ) == 0)
-         {
-         in_sub_cmd = true;
-         index++;
-         continue;
-         }
-         */
       // Build command from list
       if (!build_word_command(word_list, &cmd_ptr))
         syn_error(s);
       word_list = NULL;
       word_list_size = 0;
 
-      /*
-      // Sub command end check
-      if (strcmp(s->command_list[index], ")" ) == 0)
-      {
-      if(!in_sub_cmd)
-      syn_error(s);
-      // If there is a remaining operator tree
-      if (special_ptr != NULL)
-      {
-      if(!add_cmd_to_special(&cmd_ptr, &special_ptr, 'r'))
-      syn_error(s);
-      cmd_ptr = special_ptr;
-      }
-      if(!build_sub_command(&cmd_ptr, &special_ptr))
-      syn_error(s);
-      cmd_ptr = special_ptr;
-      special_ptr = NULL;
-      in_sub_cmd = false;
-      }
-      else
-      */
       // Add to left only in first iteration
       if(dir == 'l')
       {
