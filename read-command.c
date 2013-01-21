@@ -470,6 +470,9 @@ object is returned, and the next time
 					syn_error(s);
 
 				redirection_found= true;
+				
+				//increment index an additional time because
+				//command for index+1 is already constructed
 				index++;
 			}
 			else if(strcmp(s->command_list[index], ">") ==0)
