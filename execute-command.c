@@ -179,6 +179,7 @@ bool recurse_command(command_t c)
   }
 }
 
+
 int
 command_status (command_t c)
 {
@@ -197,9 +198,8 @@ execute_command (command_t c, bool time_travel)
     error (1, 0, "time travel execution not yet implemented");
     return;
   }
-  
-  recurse_command(c);
-  //printf("Path: %s", path);
+  else
+    recurse_command(c);
 
   return;
 }
