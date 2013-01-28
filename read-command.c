@@ -135,9 +135,12 @@ make_command_stream (int (*get_next_byte) (void *),
       {
         // Add operator 
         add_command(&(result_stream->command_list), pt_count++, "|", 1);
+        prev_byte = ' ';
+        cmd_count = 0;
+        continue;
         // Add current
-        tmp_ch = (char*) malloc(sizeof(char));
-        tmp_ch[0] = input_byte;
+        //tmp_ch = (char*) malloc(sizeof(char));
+        //tmp_ch[0] = input_byte;
       }
       else if (input_byte == '&' && prev_byte != '&')
       {
@@ -170,8 +173,8 @@ make_command_stream (int (*get_next_byte) (void *),
         free(tmp);
       } 
       // Reset for next add
-      if( (prev_byte == '|' && input_byte != '|') || 
-          (prev_byte == '&' && input_byte != '&') ||
+      if( (prev_byte == '|' && !is_valid_op(input_byte, prev_byte)) || 
+          (prev_byte == '&' && !is_valid_op(input_byte, prev_byte)) || 
           input_byte == '#' )
       {
         cmd_count = 1;
@@ -203,12 +206,12 @@ make_command_stream (int (*get_next_byte) (void *),
   result_stream->size = pt_count;
 
   // Test print
-  //int i = 0;
-  //for (i=0; i < pt_count; i++)
+  int i = 0;
+  for (i=0; i < pt_count; i++)
   {
-    //printf("%d: %s \n", i, result_stream->command_list[i]);
+    printf("%d: %s \n", i, result_stream->command_list[i]);
   }
-  //printf("\npt_count: %d \n", pt_count);
+  printf("\npt_count: %d \n", pt_count);
 
   // Returns stream as character array
   return result_stream;
@@ -219,13 +222,13 @@ make_command_stream (int (*get_next_byte) (void *),
 bool is_valid_char(char* c){
   //checks whether character is valid given requirements in spec
   bool valid_nonalnum = false;
-	char valid_chars[21] = { '!', '%', '+', ',', '-', '.', '/', ':', '@', '^', '_', ';',
+  char valid_chars[21] = { '!', '%', '+', ',', '-', '.', '/', ':', '@', '^', '_', ';',
     '|', '&', '(', ')', '<', '>', '#', '\n', ' ' };
   size_t i = 0;
   size_t j = 0;
   for (j = 0; j < strlen(c); j++)
   {
-		valid_nonalnum = false;
+    valid_nonalnum = false;
     for(i = 0; i < 21; i++)
     {
       if(c[j] == valid_chars[i]) 
@@ -233,7 +236,7 @@ bool is_valid_char(char* c){
         valid_nonalnum = true;
       }
     }
-		if(!(valid_nonalnum || isalnum(c[j])))
+    if(!(valid_nonalnum || isalnum(c[j])))
     {
       return false;
     }
@@ -250,7 +253,7 @@ bool is_special_char(char *c)
       strcmp(c, "|" ) == 0 ||
       strcmp(c, "&" ) == 0 ||
       strcmp(c, ";" ) == 0 ||
-		  strcmp(c, "<" ) == 0 ||
+      strcmp(c, "<" ) == 0 ||
       strcmp(c, ">" ) == 0 ||
       strcmp(c, ")" ) == 0 ||
       strcmp(c, "(" ) == 0 )
@@ -266,7 +269,7 @@ bool build_word_command(char** word, struct command **cmd_ptr)
     return false;
   (*cmd_ptr) = (struct command* )malloc(100*sizeof(struct command));
   (*cmd_ptr)->type = SIMPLE_COMMAND;
-  (*cmd_ptr)->status = 0;
+  (*cmd_ptr)->status = 2;
   (*cmd_ptr)->input = NULL;
   (*cmd_ptr)->output = NULL;
   (*cmd_ptr)->u.word = word;
@@ -416,11 +419,6 @@ object is returned, and the next time
   char ** word_list = NULL;
   int word_list_size = 0;
   char dir = 'l';
-  //bool in_sub_cmd = false;
-
-	//true if redirection is found
-	bool redirection_found = false;
-
 
   if (index > list_size-1)
     return NULL;
@@ -446,50 +444,60 @@ object is returned, and the next time
     // For ooerators
     if(is_special_char(s->command_list[index]))
     {
-			
-      // Build command from list
-      if(!redirection_found)
-			//if redirection was found, do not need to reconstruct command
-			//because it would already have been constructed
-			{
-				if (!build_word_command(word_list, &cmd_ptr))
-					syn_error(s);
-				word_list = NULL;
-				word_list_size = 0;
-			}
-			
-			//check first for redirection special chars
-			if(strcmp(s->command_list[index], "<") == 0)
-			{
-				//if the next command = special char output an error
-				if(is_special_char(s->command_list[index+1]))
-					syn_error(s);
-				
-				//else output an error
-				if(add_word_to_IO(s->command_list[index]+1, &cmd_ptr, 'i'))
-					syn_error(s);
-
-				redirection_found= true;
-				
-				//increment index an additional time because
-				//command for index+1 is already constructed
-				index++;
-			}
-			else if(strcmp(s->command_list[index], ">") ==0)
-			{
-				if(is_special_char(s->command_list[index+1]))
-					syn_error(s);
-
-				if(add_word_to_IO(s->command_list[index]+1, &cmd_ptr, 'o'))
-					syn_error(s);
-
-				redirection_found = true;
-				index++;
-			}
-			//else condition: not "<" or ">" so implement l and r ptrs
-			// Add to left only in first iteration
-			else if(dir == 'l')
+      //check first for redirection special chars
+      if(strcmp(s->command_list[index], "<") == 0)
       {
+        if (word_list != NULL)
+        {
+          if (!build_word_command(word_list, &cmd_ptr))
+            syn_error(s);
+          word_list = NULL;
+          word_list_size = 0;
+        }
+        //if the next command = special char output an error
+        if(is_special_char(s->command_list[index+1]) ||
+            strcmp(s->command_list[index+1], "\n") == 0)
+        {
+          syn_error(s);
+        }
+
+        //else output an error
+        if(!add_word_to_IO(s->command_list[index+1], &cmd_ptr, 'i'))
+        {
+          syn_error(s);
+        }
+
+        //increment index an additional time because
+        //command for index+1 is already constructed
+        index++;
+      }
+      else if(strcmp(s->command_list[index], ">") ==0)
+      {
+        if (word_list != NULL)
+        {
+          if (!build_word_command(word_list, &cmd_ptr))
+            syn_error(s);
+          word_list = NULL;
+          word_list_size = 0;
+        }
+        if(is_special_char(s->command_list[index+1]) ||
+            strcmp(s->command_list[index+1], "\n") == 0)
+          syn_error(s);
+
+        if(!add_word_to_IO(s->command_list[index+1], &cmd_ptr, 'o'))
+          syn_error(s);
+
+        //redirection_found = true;
+        index++;
+      }
+      //else condition: not "<" or ">" so implement l and r ptrs
+      // Add to left only in first iteration
+      else if(dir == 'l')
+      {
+        if (!build_word_command(word_list, &cmd_ptr))
+          syn_error(s);
+        word_list = NULL;
+        word_list_size = 0;
         if (!build_special_command(s->command_list[index], &special_ptr))
           syn_error(s);
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr, 'l'))
@@ -499,6 +507,10 @@ object is returned, and the next time
       // Add to further special commands
       else
       {
+        if (!build_word_command(word_list, &cmd_ptr))
+          syn_error(s);
+        word_list = NULL;
+        word_list_size = 0;
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'r'))
           syn_error(s);
         cmd_ptr = special_ptr;
@@ -512,14 +524,6 @@ object is returned, and the next time
     // For Single Words
     else
     {
-			//if you end up here and a redirection was found,
-			//error because you will be constructing a simple
-			//command after the input/output file
-			if(redirection_found==true)
-			{
-				syn_error(s);
-			}
-
       // Append to word_list before making commands
       if(!add_cmd_to_list(s->command_list[index], &word_list, word_list_size))
         syn_error(s);
@@ -530,10 +534,13 @@ object is returned, and the next time
   s->cmd_count = index + 1;
 
   //  Build remaining list
-  if (!build_word_command(word_list, &cmd_ptr))
-    syn_error(s);
-  word_list_size = 0;
-  word_list = NULL;
+  if (cmd_ptr == NULL)
+  {
+    if (!build_word_command(word_list, &cmd_ptr))
+      syn_error(s);
+    word_list_size = 0;
+    word_list = NULL;
+  }
 
   // If reaming word_list commands and incomplete tree
   if (special_ptr != NULL)
