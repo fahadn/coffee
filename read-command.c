@@ -303,7 +303,7 @@ bool build_special_command(char* type, struct command **cmd_ptr)
   }
   else 
     return false;
-  (*cmd_ptr)->status = 0;
+  (*cmd_ptr)->status = 2;
   (*cmd_ptr)->input = NULL;
   (*cmd_ptr)->output = NULL;
   (*cmd_ptr)->u.command[0] = NULL; // Left Command
@@ -314,13 +314,14 @@ bool build_special_command(char* type, struct command **cmd_ptr)
 }
 
 // Add cmd to sub command
-bool build_sub_command(command_t* cmd, struct command **cmd_ptr)
+bool build_sub_command(command_t* cmd, command_t *cmd_ptr)
 {
   if (cmd == NULL)
     return false;
   (*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));  
-  (*cmd_ptr)->status = 0;
-  (*cmd_ptr)->input = NULL;
+  (*cmd_ptr)->status = 2;
+  (*cmd_ptr)->type = 5; //subshell code
+	(*cmd_ptr)->input = NULL;
   (*cmd_ptr)->output = NULL;
   (*cmd_ptr)->u.subshell_command = *cmd;
   return true;
@@ -361,8 +362,13 @@ bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
   if (dir == 'l')
     (*special)->u.command[0] = *cmd;
   else if (dir == 'r')
+	{
+		if((*special)->u.command[0] == NULL)
+			return false;
+		
     (*special)->u.command[1] = *cmd;
-  else 
+	}
+	else 
     return false;
 
   return true;
@@ -415,10 +421,14 @@ object is returned, and the next time
 
   struct command* cmd_ptr = NULL;
   struct command* special_ptr = NULL;
+	struct command* outer_special_ptr = NULL;
 
   char ** word_list = NULL;
   int word_list_size = 0;
   char dir = 'l';
+	char outside_dir = 'l';
+
+	bool found_start_subshell = false;
 
   if (index > list_size-1)
     return NULL;
@@ -433,8 +443,10 @@ object is returned, and the next time
         return NULL;
     }
   }
+	//short loop_iteration = 0;
   while ( strcmp(s->command_list[index], "\n") != 0)
   {
+//		printf("Iteration: %d\n", loop_iteration++);
     // Syntax Check
     if (!is_valid_char(s->command_list[index]))
     {
@@ -444,8 +456,58 @@ object is returned, and the next time
     // For ooerators
     if(is_special_char(s->command_list[index]))
     {
+			if(strcmp(s->command_list[index], "(") == 0)
+			{
+				found_start_subshell = true;
+				if(word_list_size !=0 && word_list != NULL && special_ptr==NULL)
+					syn_error(s);
+
+				outer_special_ptr = special_ptr;
+				special_ptr = NULL;
+				outside_dir = dir;
+				dir = 'l';
+
+
+			}
+			else if(strcmp(s->command_list[index], ")")==0)
+			{
+				if(found_start_subshell)
+				{
+					found_start_subshell = false;
+				}
+				else
+				{
+					syn_error(s);
+				}
+
+				if(!build_word_command(word_list, &cmd_ptr))
+				{
+					syn_error(s);
+				}
+				word_list = NULL;
+				word_list_size = 0;
+
+				//if there is a special command
+
+				if(special_ptr != NULL)
+				{
+					if(!add_cmd_to_special(&cmd_ptr, &special_ptr, 'r'))
+						syn_error(s);
+					cmd_ptr = special_ptr;
+					
+				}
+
+				if(!build_sub_command(&cmd_ptr, &special_ptr))
+					syn_error(s);
+				cmd_ptr = special_ptr;
+				special_ptr = outer_special_ptr;
+				dir = outside_dir;
+
+		//		printf("I came here!\n");
+			}
+			
       //check first for redirection special chars
-      if(strcmp(s->command_list[index], "<") == 0)
+      else if(strcmp(s->command_list[index], "<") == 0)
       {
         if (word_list != NULL)
         {
@@ -455,17 +517,20 @@ object is returned, and the next time
           word_list_size = 0;
         }
         //if the next command = special char output an error
-        if(is_special_char(s->command_list[index+1]) ||
+        if(index+1 < list_size)
+				{
+					if(is_special_char(s->command_list[index+1]) ||
             strcmp(s->command_list[index+1], "\n") == 0)
-        {
-          syn_error(s);
-        }
-
-        //else output an error
-        if(!add_word_to_IO(s->command_list[index+1], &cmd_ptr, 'i'))
-        {
-          syn_error(s);
-        }
+					{
+						syn_error(s);
+					}
+				
+					//else output an error
+					if(!add_word_to_IO(s->command_list[index+1], &cmd_ptr, 'i'))
+					{
+						syn_error(s);
+					}
+				}
 
         //increment index an additional time because
         //command for index+1 is already constructed
@@ -480,13 +545,15 @@ object is returned, and the next time
           word_list = NULL;
           word_list_size = 0;
         }
-        if(is_special_char(s->command_list[index+1]) ||
-            strcmp(s->command_list[index+1], "\n") == 0)
-          syn_error(s);
+				if(index+1 < list_size)//check condition later
+				{
+					if(is_special_char(s->command_list[index+1]) ||
+						  strcmp(s->command_list[index+1], "\n") == 0)
+						syn_error(s);
 
-        if(!add_word_to_IO(s->command_list[index+1], &cmd_ptr, 'o'))
-          syn_error(s);
-
+					if(!add_word_to_IO(s->command_list[index+1], &cmd_ptr, 'o'))
+						syn_error(s);
+				}
         index++;
       }
       //else condition: not "<" or ">" so implement l and r ptrs
@@ -500,6 +567,7 @@ object is returned, and the next time
           word_list = NULL;
           word_list_size = 0;
         }
+
         if (!build_special_command(s->command_list[index], &special_ptr))
           syn_error(s);
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr, 'l'))
@@ -527,10 +595,15 @@ object is returned, and the next time
           syn_error(s);
       }
 
-    if ( index+1 < list_size && strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
-    {
-      index++;
-    }
+	//		printf("i made it this far\n");
+			//solves "dangling \n" problem
+				if ( index+2 < list_size)
+				{
+					if(strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
+					{
+						index++;
+					}
+				}
 
     }
     // For Single Words
@@ -539,20 +612,36 @@ object is returned, and the next time
       // Append to word_list before making commands
       if(!add_cmd_to_list(s->command_list[index], &word_list, word_list_size))
         syn_error(s);
-      word_list_size++;
+  //    printf("Added command %s to position %d\n", s->command_list[index], word_list_size);
+			word_list_size++;
     }
     index++;
   }
   s->cmd_count = index + 1;
+  
 
+	//printf("I made it this far?");
   //  Build remaining list
   if (cmd_ptr == NULL)
   {
     if (!build_word_command(word_list, &cmd_ptr))
       syn_error(s);
-    word_list_size = 0;
+   // int i;
+	//	for(i = 0; i< word_list_size; i++)
+	//	{
+//			printf("adding to cmd word %s\n", word_list[i]);
+
+	//	}
+		
+		word_list_size = 0;
     word_list = NULL;
-  }
+		
+ 
+ }
+
+
+	if(found_start_subshell)
+		syn_error(s);
 
   // If reaming word_list commands and incomplete tree
   if (special_ptr != NULL)
@@ -562,8 +651,8 @@ object is returned, and the next time
     cmd_ptr = special_ptr;
   }
 
+	//printf("I made it this far!");
   // Increment line count
   s->line_count++;
   return cmd_ptr;
 }
-
