@@ -135,9 +135,13 @@ make_command_stream (int (*get_next_byte) (void *),
       {
         // Add operator 
         add_command(&(result_stream->command_list), pt_count++, "|", 1);
-        // Add current
-        tmp_ch = (char*) malloc(sizeof(char));
-        tmp_ch[0] = input_byte;
+        prev_byte = ' ';
+				cmd_count = 0;
+				continue;
+				
+				// Add current
+       // tmp_ch = (char*) malloc(sizeof(char));
+       // tmp_ch[0] = input_byte;
       }
       else if (input_byte == '&' && prev_byte != '&')
       {
@@ -170,8 +174,8 @@ make_command_stream (int (*get_next_byte) (void *),
         free(tmp);
       } 
       // Reset for next add
-      if( (prev_byte == '|' && input_byte != '|') || 
-          (prev_byte == '&' && input_byte != '&') ||
+      if( (prev_byte == '|' && !is_valid_op(input_byte, prev_byte) )|| 
+          (prev_byte == '&' && !is_valid_op(input_byte, prev_byte)) ||
           input_byte == '#' )
       {
         cmd_count = 1;
@@ -266,7 +270,7 @@ bool build_word_command(char** word, struct command **cmd_ptr)
     return false;
   (*cmd_ptr) = (struct command* )malloc(100*sizeof(struct command));
   (*cmd_ptr)->type = SIMPLE_COMMAND;
-  (*cmd_ptr)->status = 0;
+  (*cmd_ptr)->status = 2;
   (*cmd_ptr)->input = NULL;
   (*cmd_ptr)->output = NULL;
   (*cmd_ptr)->u.word = word;
@@ -316,7 +320,7 @@ bool build_sub_command(command_t* cmd, struct command **cmd_ptr)
   if (cmd == NULL)
     return false;
   (*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));  
-  (*cmd_ptr)->status = 0;
+  (*cmd_ptr)->status = 2;
   (*cmd_ptr)->input = NULL;
   (*cmd_ptr)->output = NULL;
   (*cmd_ptr)->u.subshell_command = *cmd;
@@ -326,7 +330,10 @@ bool build_sub_command(command_t* cmd, struct command **cmd_ptr)
 // Add command word to array list
 bool add_cmd_to_list(char* cmd, char*** list, int list_size)
 {
-  *list = (char**)realloc((*list), (list_size+100)*sizeof(char*));
+  if(strcmp(cmd, "\n") ==0) 
+		return true;
+		
+	*list = (char**)realloc((*list), (list_size+100)*sizeof(char*));
   {
     if (cmd == NULL)
     {
@@ -435,8 +442,36 @@ object is returned, and the next time
         return NULL;
     }
   }
-  while ( strcmp(s->command_list[index], "\n") != 0)
-  {
+	int iteration = 0;
+  //while ( strcmp(s->command_list[index], "\n") != 0)
+  for(;;)
+	{
+			printf("----Itr %d-----\n", iteration++);
+			if(special_ptr != NULL)
+				printf("Value of special ptr: %d\n", special_ptr->type);
+	
+		if(cmd_ptr != NULL)
+		{
+			printf("Val of cmd ptr: %d\n", cmd_ptr->type);
+		
+			printf("i got here 2\n");
+
+			if(cmd_ptr->u.command[0] != NULL)
+				printf("Val of child 1: %s\n", *cmd_ptr->u.word);
+			
+
+			if(cmd_ptr->u.command[1] != NULL)
+				printf("Val of child 2: %s\n", *cmd_ptr->u.word);
+		
+		}
+
+
+		if(index > list_size-1 &&
+			cmd_ptr != NULL && special_ptr == NULL)
+		{
+			break;
+		}
+		printf("Cmd %d passed in: %s \n", index, s->command_list[index]);
     // Syntax Check
     if (!is_valid_char(s->command_list[index]))
     {
@@ -519,16 +554,35 @@ object is returned, and the next time
 			{
 				syn_error(s);
 			}
+			
+			if(strcmp(s->command_list[index],"\n") == 0)
+			{
+				printf("i got here\n");
 
+				if (special_ptr != NULL)
+				{
+					if(!build_word_command(word_list, &cmd_ptr))
+						syn_error(s);
+				
+					if(!add_cmd_to_special(&cmd_ptr, &special_ptr, 'r'))
+				    syn_error(s);
+					cmd_ptr = special_ptr;
+					special_ptr = NULL;
+				}
+			}
+			else
+			{
+				printf("Adding to word list at position %d: %s\n", word_list_size, s->command_list[index]);
       // Append to word_list before making commands
-      if(!add_cmd_to_list(s->command_list[index], &word_list, word_list_size))
-        syn_error(s);
-      word_list_size++;
+				if(!add_cmd_to_list(s->command_list[index], &word_list, word_list_size))
+					syn_error(s);
+				word_list_size++;
+			}
     }
     index++;
   }
   s->cmd_count = index + 1;
-
+/*
   //  Build remaining list
   if (!build_word_command(word_list, &cmd_ptr))
     syn_error(s);
@@ -542,7 +596,7 @@ object is returned, and the next time
       syn_error(s);
     cmd_ptr = special_ptr;
   }
-
+*/
   // Increment line count
   s->line_count++;
   return cmd_ptr;
