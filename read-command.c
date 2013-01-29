@@ -502,6 +502,7 @@ object is returned, and the next time
           syn_error(s);
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr, 'l'))
           syn_error(s);
+        cmd_ptr = NULL;
         dir = 'r';
       }
       // Add to further special commands
