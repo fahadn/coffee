@@ -139,8 +139,6 @@ make_command_stream (int (*get_next_byte) (void *),
         cmd_count = 0;
         continue;
         // Add current
-        //tmp_ch = (char*) malloc(sizeof(char));
-        //tmp_ch[0] = input_byte;
       }
       else if (input_byte == '&' && prev_byte != '&')
       {
@@ -595,6 +593,7 @@ object is returned, and the next time
           syn_error(s);
       }
 
+
 	//		printf("i made it this far\n");
 			//solves "dangling \n" problem
 				if ( index+2 < list_size)
@@ -604,6 +603,12 @@ object is returned, and the next time
 						index++;
 					}
 				}
+
+
+
+
+
+
 
     }
     // For Single Words
@@ -620,7 +625,18 @@ object is returned, and the next time
   s->cmd_count = index + 1;
   
 
-	//printf("I made it this far?");
+
+
+
+  // Fix case for single sided sequence commands
+  if (special_ptr != NULL)
+  {
+    if (special_ptr->type == SEQUENCE_COMMAND && special_ptr->u.command[1] == NULL)
+    {
+      add_cmd_to_list(" ", &word_list, word_list_size);
+    } 
+  }
+
   //  Build remaining list
   if (cmd_ptr == NULL)
   {
