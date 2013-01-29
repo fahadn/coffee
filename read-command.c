@@ -487,17 +487,19 @@ object is returned, and the next time
         if(!add_word_to_IO(s->command_list[index+1], &cmd_ptr, 'o'))
           syn_error(s);
 
-        //redirection_found = true;
         index++;
       }
       //else condition: not "<" or ">" so implement l and r ptrs
       // Add to left only in first iteration
       else if(dir == 'l')
       {
-        if (!build_word_command(word_list, &cmd_ptr))
-          syn_error(s);
-        word_list = NULL;
-        word_list_size = 0;
+        if (word_list != NULL)
+        {
+          if (!build_word_command(word_list, &cmd_ptr))
+            syn_error(s);
+          word_list = NULL;
+          word_list_size = 0;
+        }
         if (!build_special_command(s->command_list[index], &special_ptr))
           syn_error(s);
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr, 'l'))
@@ -508,10 +510,13 @@ object is returned, and the next time
       // Add to further special commands
       else
       {
+        if (word_list != NULL)
+        {
         if (!build_word_command(word_list, &cmd_ptr))
           syn_error(s);
         word_list = NULL;
         word_list_size = 0;
+        }
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'r'))
           syn_error(s);
         cmd_ptr = special_ptr;
@@ -521,6 +526,12 @@ object is returned, and the next time
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'l'))
           syn_error(s);
       }
+
+    if ( index+1 < list_size && strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
+    {
+      index++;
+    }
+
     }
     // For Single Words
     else
