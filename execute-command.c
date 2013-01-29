@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <error.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
@@ -36,30 +38,19 @@ bool run_command(command_t c)
   // Set contents of file to be an argument
   if (c->input != NULL)
   {
-    FILE *in_file = fopen(c->input, "rb");
-    int file_size = 0;
     size_t i = 0;
-
-    // Find file size
-    fseek(in_file, 0L, SEEK_END);
-    file_size = ftell(in_file);
-    fseek(in_file, 0L, SEEK_SET);
-
-    char *buffer = (char*)malloc(file_size);
-    if (in_file == NULL) 
-      perror("Error opening file");
-    else
-      fgets(buffer, file_size, in_file);
-
-    fclose(in_file);
-
+    size_t in_size = strlen(c->input);
+    // Find end of command list
     while (c->u.word[i] != NULL)
     {
       i++; 
     }
-    c->u.word[i] = (char*)malloc(file_size);
-    c->u.word[i] = buffer;
+    c->u.word[i] = (char*)malloc(in_size *sizeof(char));
+    c->u.word[i] = c->input;
+    c->u.word[i+1] = (char*)malloc(sizeof(char));
+    c->u.word[i+1] = NULL;
   } 
+
   // Print stdout to file
   if (c->output != NULL)
   {
@@ -81,6 +72,33 @@ bool run_command(command_t c)
     fclose(stdout);
   }
   return true;
+}
+
+void free_command(command_t c)
+{
+  switch(c->type)
+  {
+    case SIMPLE_COMMAND:
+      {
+        free(c);
+        break;
+      }
+    case SUBSHELL_COMMAND:
+      {
+        free_command(c->u.subshell_command);
+        break;
+      }
+    case AND_COMMAND:
+    case OR_COMMAND:
+    case PIPE_COMMAND:
+    case SEQUENCE_COMMAND:
+      {
+        free_command(c->u.command[0]);
+        free_command(c->u.command[1]);
+        break;
+      }
+  }
+  return;
 }
 
 bool recurse_command(command_t c)
@@ -162,7 +180,12 @@ bool recurse_command(command_t c)
       if (pid > 0)
         wait(&status);
       else if (pid == 0)
-        run_command(c);
+      {
+        if (!isspace(c->u.word[0][0]))
+        {
+          run_command(c);
+        }
+      } 
       else if (pid < 0)
       {
         fprintf(stderr, "Fork Error");
@@ -178,7 +201,6 @@ bool recurse_command(command_t c)
     }
   }
 }
-
 
 int
 command_status (command_t c)
@@ -199,7 +221,11 @@ execute_command (command_t c, bool time_travel)
     return;
   }
   else
+  {
     recurse_command(c);
+    free_command(c);
+  }
+
 
   return;
 }
