@@ -94,6 +94,7 @@ void free_command(command_t c)
     case SEQUENCE_COMMAND:
       {
         free_command(c->u.command[0]);
+   printf("NO ERROR HERE\n");
         free_command(c->u.command[1]);
         break;
       }
@@ -202,18 +203,81 @@ bool recurse_command(command_t c)
   }
 }
 
-bool break_tree(command_t c, command_t *output_cmd_array)
+bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
 {
+  if ( c == NULL)
+    return false;
+  switch(c->type)
+  {
+    // In order traversal to break tree.
+    // Makes leaf nodes NULL
+    case AND_COMMAND:
+    case OR_COMMAND:
+    case PIPE_COMMAND:
+    case SEQUENCE_COMMAND:
+    {
+      break_tree(c->u.command[0], output_cmd_array, array_size);
+      (*output_cmd_array) = (command_t*)realloc((*output_cmd_array), ((*array_size)+1)*sizeof(command_t)*100);
+      (*output_cmd_array)[(*array_size)] = c;
+      (*array_size)++;
+      break_tree(c->u.command[1], output_cmd_array, array_size);
+      break;
+    }
+    // Adds command to command list
+    // Subshell does not get broken up
+    case SUBSHELL_COMMAND:
+    case SIMPLE_COMMAND:
+    {
+      (*output_cmd_array) = (command_t*)realloc((*output_cmd_array), ((*array_size)+1)*sizeof(command_t)*100);
+      (*output_cmd_array)[(*array_size)] = c;
+
+      (*array_size)++;
+      break;
+    }
+    default:
+    {
+      return false;
+    }
+  }
+  return true;
+
 }
 
 bool form_tree(command_t *c, command_t output_cmd)
 {
+  c=c;
+  output_cmd = output_cmd;
+  return true;
 }
 
 int
 command_status (command_t c)
 {
   return c->status;
+}
+
+void test_output_cmd(command_t *cmd_array, int array_size)
+{ 
+  // Test break tree
+    int i = 0;
+    for (i = 0; i < array_size ;i++)
+    {
+      switch(cmd_array[i]->type)
+      {
+        case AND_COMMAND:
+          printf("Type: AND_COMMAND\n"); break;
+        case SEQUENCE_COMMAND:
+          printf("Type: SEQENCE_COMMAND\n"); break;
+        case OR_COMMAND:
+          printf("Type: PIPE_COMMAND\n"); break;
+        case PIPE_COMMAND:
+          printf("Type: PIPE_COMMAND\n"); break;
+        case SIMPLE_COMMAND:
+          printf("Type: SIMPLE_COMMAND\n Word: %s\n", cmd_array[i]->u.word[0]); break;
+        case SUBSHELL_COMMAND:
+          printf("Type: SUBSHELL_COMMAND\n"); break;
+      }
+    }
 }
 
 void
@@ -230,10 +294,13 @@ execute_command (command_t c, bool time_travel)
   }
   else
   {
-    break_tree(c, array);
-    form_tree(c,array);
-    recurse_command(c);
-    free_command(c);
+    command_t *cmd_array = (command_t*)malloc(sizeof(command_t));
+    int *array_size = (int*)malloc(sizeof(int));
+    *array_size = 0;
+    break_tree(c, &cmd_array, array_size);
+    test_output_cmd(cmd_array, *array_size);
+
+    //recurse_command(c);
   }
 
 

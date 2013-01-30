@@ -204,12 +204,12 @@ make_command_stream (int (*get_next_byte) (void *),
   result_stream->size = pt_count;
 
   // Test print
-  int i = 0;
-  for (i=0; i < pt_count; i++)
+  //int i = 0;
+  //for (i=0; i < pt_count; i++)
   {
-    printf("%d: %s \n", i, result_stream->command_list[i]);
+    //printf("%d: %s \n", i, result_stream->command_list[i]);
   }
-  printf("\npt_count: %d \n", pt_count);
+  //printf("\npt_count: %d \n", pt_count);
 
   // Returns stream as character array
   return result_stream;
@@ -347,6 +347,9 @@ bool add_cmd_to_list(char* cmd, char*** list, int list_size)
 // Add list of array to direction of special command(&& || | ;)
 bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
 {
+  if ((*cmd) == NULL || (*special) == NULL)
+    return false;
+
   // Error Check
   if ((*cmd)->type == AND_COMMAND || (*cmd)->type == SEQUENCE_COMMAND || 
       (*cmd)->type == OR_COMMAND  || (*cmd)->type == PIPE_COMMAND)
@@ -354,8 +357,6 @@ bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
     if ((*cmd)->u.command[0] == NULL || (*cmd)->u.command[1] == NULL)
       return false;
   }
-  if (cmd == NULL || special == NULL)
-    return false;
   // Add command to special command
   if (dir == 'l')
     (*special)->u.command[0] = *cmd;
@@ -578,10 +579,10 @@ object is returned, and the next time
       {
         if (word_list != NULL)
         {
-        if (!build_word_command(word_list, &cmd_ptr))
-          syn_error(s);
-        word_list = NULL;
-        word_list_size = 0;
+          if (!build_word_command(word_list, &cmd_ptr))
+            syn_error(s);
+          word_list = NULL;
+          word_list_size = 0;
         }
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'r'))
           syn_error(s);
@@ -593,10 +594,9 @@ object is returned, and the next time
           syn_error(s);
       }
 
-
 	//		printf("i made it this far\n");
 			//solves "dangling \n" problem
-				if ( index+2 < list_size)
+				if (index+2 < list_size)
 				{
 					if(strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
 					{
@@ -627,7 +627,7 @@ object is returned, and the next time
   }
 
   //  Build remaining list
-  if (cmd_ptr == NULL)
+  if (word_list != NULL)
   {
     if (!build_word_command(word_list, &cmd_ptr))
       syn_error(s);
