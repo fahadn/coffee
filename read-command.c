@@ -203,13 +203,13 @@ make_command_stream (int (*get_next_byte) (void *),
 
   result_stream->size = pt_count;
 
-  // Test print
-  //int i = 0;
-  //for (i=0; i < pt_count; i++)
-  {
-    //printf("%d: %s \n", i, result_stream->command_list[i]);
-  }
-  //printf("\npt_count: %d \n", pt_count);
+  //Test print
+//  int i = 0;
+//  for (i=0; i < pt_count; i++)
+//  {
+//    printf("%d: %s \n", i, result_stream->command_list[i]);
+//  }
+//  printf("\npt_count: %d \n", pt_count);
 
   // Returns stream as character array
   return result_stream;
@@ -457,6 +457,7 @@ object is returned, and the next time
     {
 			if(strcmp(s->command_list[index], "(") == 0)
 			{
+				if(found_start_subshell) syn_error(s);
 				found_start_subshell = true;
 				if(word_list_size !=0 && word_list != NULL && special_ptr==NULL)
 					syn_error(s);
@@ -596,13 +597,21 @@ object is returned, and the next time
 
 	//		printf("i made it this far\n");
 			//solves "dangling \n" problem
-				if (index+2 < list_size)
-				{
-					if(strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
-					{
-						index++;
-					}
-				}
+	//		bool b = false;
+			while(index+2 < list_size && strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
+			{
+				index++;
+	//			b = true;
+			}
+	//		if(b) index--;
+			
+				//if (index+2 < list_size)
+				//{
+				//	if(strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
+				//	{
+					//	index++;
+				//	}
+				//}
     }
     // For Single Words
     else
