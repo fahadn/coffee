@@ -202,6 +202,14 @@ bool recurse_command(command_t c)
   }
 }
 
+bool break_tree(command_t c, command_t *output_cmd_array)
+{
+}
+
+bool form_tree(command_t *c, command_t output_cmd)
+{
+}
+
 int
 command_status (command_t c)
 {
@@ -222,6 +230,8 @@ execute_command (command_t c, bool time_travel)
   }
   else
   {
+    break_tree(c, array);
+    form_tree(c,array);
     recurse_command(c);
     free_command(c);
   }

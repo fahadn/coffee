@@ -603,13 +603,6 @@ object is returned, and the next time
 						index++;
 					}
 				}
-
-
-
-
-
-
-
     }
     // For Single Words
     else
@@ -624,10 +617,6 @@ object is returned, and the next time
   }
   s->cmd_count = index + 1;
   
-
-
-
-
   // Fix case for single sided sequence commands
   if (special_ptr != NULL)
   {
@@ -651,10 +640,7 @@ object is returned, and the next time
 		
 		word_list_size = 0;
     word_list = NULL;
-		
- 
  }
-
 
 	if(found_start_subshell)
 		syn_error(s);
