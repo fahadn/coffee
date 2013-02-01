@@ -57,6 +57,16 @@ int add_command(char*** list, int list_size, char* cmd, int cmd_size)
   {
     l_cmd = trim_whitespace(l_cmd);
   }
+  else
+  {
+    if (list_size > 0 && cmd_size > 0)
+    {
+      if ((*list)[list_size-1][0] == '\n') 
+      {
+        return 0;
+      }
+    }
+  }
   // Add command to list
   *list = (char**) realloc(*list, (list_size+1)*sizeof(char**));
   (*list)[list_size] = strdup(l_cmd);
@@ -69,7 +79,8 @@ int is_valid_op(char op, char last_op)
   return (op == '\n' || op == ' ' || op == ';' || 
       op == '#'  || op == '(' || op == ')' ||
       op == '&'  || op == '|' || op == '>' ||
-      op == '<'  || last_op == '&' || last_op == '|');
+      op == '<'  || last_op == '&' || last_op == '|' ||
+      op == '\n');
 }
 
   command_stream_t
@@ -109,11 +120,29 @@ make_command_stream (int (*get_next_byte) (void *),
       // Add command
       if (tmp_ch != NULL) 
       {
-        add_command(&(result_stream->command_list), pt_count++, tmp_ch, cmd_count);
+        if (add_command(&(result_stream->command_list), pt_count, tmp_ch, cmd_count) != 0)
+        {
+          pt_count++;
+        }
+        else
+        {
+          prev_byte = input_byte;
+          input_byte = get_next_byte(get_next_byte_argument);
+          continue;
+        }
         free(tmp_ch);
         tmp_ch = NULL;
       }
       // Operator Cases
+      if (input_byte == '\n')
+      {
+        if(result_stream->command_list[pt_count-1][0] == '\n')
+        {
+          prev_byte = input_byte;
+          input_byte = get_next_byte(get_next_byte_argument);
+          continue;
+        }
+      }
       if (input_byte == '#') 
       {
         // Append # comment to next command
@@ -204,12 +233,12 @@ make_command_stream (int (*get_next_byte) (void *),
   result_stream->size = pt_count;
 
   //Test print
-//  int i = 0;
-//  for (i=0; i < pt_count; i++)
-//  {
-//    printf("%d: %s \n", i, result_stream->command_list[i]);
-//  }
-//  printf("\npt_count: %d \n", pt_count);
+  //int i = 0;
+  //for (i=0; i < pt_count; i++)
+  {
+    //printf("%d: %s \n", i, result_stream->command_list[i]);
+  }
+  //printf("\npt_count: %d \n", pt_count);
 
   // Returns stream as character array
   return result_stream;
@@ -494,6 +523,7 @@ object is returned, and the next time
 					if(!add_cmd_to_special(&cmd_ptr, &special_ptr, 'r'))
 						syn_error(s);
 					cmd_ptr = special_ptr;
+          special_ptr = NULL;
 					
 				}
 
@@ -593,12 +623,13 @@ object is returned, and the next time
           syn_error(s);
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'l'))
           syn_error(s);
+        cmd_ptr = NULL;
       }
 
 	//		printf("i made it this far\n");
 			//solves "dangling \n" problem
 	//		bool b = false;
-			while(index+2 < list_size && strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
+			if(index+2 < list_size && strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
 			{
 				index++;
 	//			b = true;
@@ -654,12 +685,13 @@ object is returned, and the next time
 	if(found_start_subshell)
 		syn_error(s);
 
-  // If reaming word_list commands and incomplete tree
+  // If remaining word_list commands and incomplete tree
   if (special_ptr != NULL)
   {
     if(!add_cmd_to_special(&cmd_ptr, &special_ptr, 'r'))
       syn_error(s);
     cmd_ptr = special_ptr;
+    special_ptr = NULL;
   }
 
 	//printf("I made it this far!");
