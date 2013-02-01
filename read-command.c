@@ -594,24 +594,20 @@ object is returned, and the next time
         if (!add_cmd_to_special(&cmd_ptr,&special_ptr,'l'))
           syn_error(s);
       }
-
 	//		printf("i made it this far\n");
 			//solves "dangling \n" problem
-	//		bool b = false;
-			while(index+2 < list_size && strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
-			{
-				index++;
-	//			b = true;
-			}
-	//		if(b) index--;
+//			while(index+2 < list_size && strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
+	//		{
+		//		index++;
+		//	}
 			
-				//if (index+2 < list_size)
-				//{
-				//	if(strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
-				//	{
-					//	index++;
-				//	}
-				//}
+				if (index+2 < list_size)
+				{
+					if(strcmp(s->command_list[index+1], "\n") == 0 && special_ptr != NULL)
+					{
+						index++;
+					}
+				}
     }
     // For Single Words
     else
