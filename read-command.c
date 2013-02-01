@@ -233,12 +233,12 @@ make_command_stream (int (*get_next_byte) (void *),
   result_stream->size = pt_count;
 
   //Test print
-  //int i = 0;
-  //for (i=0; i < pt_count; i++)
+  int i = 0;
+  for (i=0; i < pt_count; i++)
   {
-    //printf("%d: %s \n", i, result_stream->command_list[i]);
+    printf("%d: %s \n", i, result_stream->command_list[i]);
   }
-  //printf("\npt_count: %d \n", pt_count);
+  printf("\npt_count: %d \n", pt_count);
 
   // Returns stream as character array
   return result_stream;
@@ -560,6 +560,11 @@ object is returned, and the next time
 					{
 						syn_error(s);
 					}
+          if( strcmp(s->command_list[index+2], "\n") == 0)
+          {
+            index++;
+            break;
+          }
 				}
 
         //increment index an additional time because
@@ -584,6 +589,11 @@ object is returned, and the next time
 					if(!add_word_to_IO(s->command_list[index+1], &cmd_ptr, 'o'))
 						syn_error(s);
 				}
+          if( strcmp(s->command_list[index+2], "\n") == 0)
+          {
+            index++;
+            break;
+          }
         index++;
       }
       //else condition: not "<" or ">" so implement l and r ptrs
