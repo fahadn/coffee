@@ -247,23 +247,24 @@ bool form_tree(command_t *c, command_t output_cmd, int size)
 {
 	//given pointer to array of commands
 	//
-
+	output_cmd = output_cmd;
 	int i;
+	int * broken_subshell_size=NULL;
 	for(i = 0; i < size; i++)
 	{
 		if(c[i] == NULL) continue;
 		//check for subcommands
 		if(c[i]->type == SUBSHELL_COMMAND)
 		{
-			command_t * broken_subshell;
-			int * broken_subshell_size;
+			command_t * broken_subshell = NULL;
+			
 			//break up the subshell tree
 			if(!break_tree(c[i], &broken_subshell, broken_subshell_size))
 				printf("Error breaking subshell tree!\n");
 
-			command_t subshell_output_cmd;
+			command_t subshell_output_cmd = NULL;
 			//pass in the broken tree to form_tree
-			if(!form_tree(c[i], subshell_output_cmd, *broken_subshell_size))
+			if(!form_tree(&c[i], subshell_output_cmd, (*broken_subshell_size)))
 				printf("Error forming subshell tree!\n");
 
 
@@ -284,11 +285,11 @@ bool form_tree(command_t *c, command_t output_cmd, int size)
 				{
 					while(c[i-1] == NULL)
 						i--;
-					if(c[i-1] ==NULL printf("Error attaching to left command of pipe");
+					if(c[i-1] ==NULL) printf("Error attaching to left command of pipe");
 							}
 							}
 
-							c[i]->command[0] = c[i-1];
+							c[i]->u.command[0] = c[i-1];
 							c[i-1] = NULL;
 
 							if(i+1 < size)
@@ -299,7 +300,7 @@ bool form_tree(command_t *c, command_t output_cmd, int size)
 							i++;
 							}
 							}
-							c[i]->command[1] = c[i+1];
+							c[i]->u.command[1] = c[i+1];
 							c[i+1] =NULL;
 							}
 
@@ -320,7 +321,7 @@ bool form_tree(command_t *c, command_t output_cmd, int size)
 					if(c[i-1] ==NULL) printf("Error attaching to left command of or command\n");
 				}
 			}
-			c[i]->command[0] = c[i-1];
+			c[i]->u.command[0] = c[i-1];
 			c[i-1] = NULL;
 
 			if(i+1 < size)
@@ -331,7 +332,7 @@ bool form_tree(command_t *c, command_t output_cmd, int size)
 						i++;
 				}
 			}
-			c[i]->command[1] = c[i+1];
+			c[i]->u.command[1] = c[i+1];
 			c[i+1] =NULL;
 		}
 	}
