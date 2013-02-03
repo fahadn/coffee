@@ -711,7 +711,7 @@ object is returned, and the next time
 			//else keep going to next index as if never encountered a comment
 			else index= index+1;
 			//if the next thing is a \n, just break
-			if(index >= list_size)
+			if(index+1 >= list_size)
 			{
 				only_comment_left = true;
 				break;
@@ -952,7 +952,7 @@ object is returned, and the next time
 	s->line_count++;
 	if(only_comment_left==true)
 	{
-		return NULL;
+		return cmd_ptr;
 	}
 	command_t *cmd_array = (command_t*)checked_malloc(sizeof(command_t));
 	int *array_size = (int*)checked_malloc(sizeof(int));
