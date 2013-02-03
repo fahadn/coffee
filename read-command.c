@@ -239,12 +239,14 @@ make_command_stream (int (*get_next_byte) (void *),
 
 	result_stream->size = pt_count;
 	//Test print
+  /*
 	int i = 0;
 	for (i=0; i < pt_count; i++)
 	{
 		printf("%d: %s \n", i, result_stream->command_list[i]);
 	}
 	printf("\npt_count: %d \n", pt_count);
+	*/
 	// Returns stream as character array
 	return result_stream;
 }
@@ -637,10 +639,7 @@ bool form_tree(command_t **c, command_t* output_cmd, int size)
 	return true;
 }
 
-
-
-
-	command_t
+command_t
 read_command_stream (command_stream_t s)
 {
 	/* 
@@ -665,10 +664,13 @@ object is returned, and the next time
 
 	char ** word_list = NULL;
 	int word_list_size = 0;
+	//char ** comment_word_list = NULL;
+	//int comment_word_list_size = 0;
 	char dir = 'l';
 	char outside_dir = 'l';
 
 	bool found_start_subshell = false;
+	bool only_comment_left = false;
 
 	if (index > list_size-1)
 		return NULL;
@@ -691,6 +693,26 @@ object is returned, and the next time
 		if (!is_valid_char(s->command_list[index]))
 		{
 			syn_error(s);
+		}
+		//if encounter a comment
+		if(strcmp(s->command_list[index], "#") == 0)
+		{
+			//ignore commands being passed in until newline
+			while(strcmp(s->command_list[index], "\n") != 0)
+			{
+				index++;
+			}
+			//if word list has things, continue to so that it will terminate
+			//upon next iteration and construct the normal cmd
+			if(word_list_size != 0) continue;
+			//else keep going to next index as if never encountered a comment
+			else index= index+1;
+			//if the next thing is a \n, just break
+			if(index >= list_size)
+			{
+				only_comment_left = true;
+				break;
+			}
 		}
 
 		// For ooerators
@@ -881,7 +903,7 @@ object is returned, and the next time
 			//    printf("Added command %s to position %d\n", s->command_list[index], word_list_size);
 			word_list_size++;
 		}
-		index++;
+			index++;
 	}
 	s->cmd_count = index + 1;
 
@@ -925,8 +947,13 @@ object is returned, and the next time
 	//printf("I made it this far!");
 	// Increment line count
 	s->line_count++;
+	if(only_comment_left==true)
+	{
+		return NULL;
+	}
 	command_t *cmd_array = (command_t*)checked_malloc(sizeof(command_t));
 	int *array_size = (int*)checked_malloc(sizeof(int));
+
 	*array_size = 0;
 	break_tree(cmd_ptr, &cmd_array, array_size);
 	command_t cmd = (struct command*) checked_malloc((*array_size)*sizeof(struct command *));
