@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 /* FIXME: You may need to add #include directives, macro definitions,
    static function definitions, etc.  */
@@ -58,7 +59,7 @@ bool run_command(command_t c)
   }
 
   // Testing Code
-  printf("\n\nCommand: %s \nWith Arguments: %s \n", c->u.word[0], c->u.word[1] );
+  //printf("\n\nCommand: %s \nWith Arguments: %s \n", c->u.word[0], c->u.word[1] );
 
   if (execvp(c->u.word[0], c->u.word) == -1)
   {
@@ -361,8 +362,9 @@ bool add_to_list(char**** list, int *list_size, pid_t p, char** depend, int depe
 
   (*list) = realloc((*list), ((*list_size)+10)*sizeof(char**));
   (*list)[*list_size] = (char**) realloc((*list)[*list_size], (*list_size+100)*sizeof(char*));
-  char c[2] = { (char)p };
-  (*list)[*list_size][0] = strdup(c);
+  char pid[100];
+  sprintf(pid,"%d",p);
+  (*list)[*list_size][0] = strdup( pid );
   int i = 1;
   for (i = 1; i < depend_size+1; i++)
   {
@@ -375,25 +377,40 @@ bool add_to_list(char**** list, int *list_size, pid_t p, char** depend, int depe
 
 // Returns pid of dependency when any command in depend is in list
 // returns negative pid when not found
-pid_t find_match(char *** list, int list_size, char** depend, int depend_size)
+pid_t find_match(char *** list, int list_size, char** depend, int depend_size, int id)
 {
+  if (list == NULL)
+    return -1;
   int i = 0;
   int j = 0;
   int k = 0;
+  char pid[100];
+  sprintf(pid,"%d",id);
   for (i = 0; i < list_size; i++)
   {
+    if (list[i] == NULL)
+      return -1;
     for (j = 0; j < depend_size; j++)
     {
       k = 0;
       while (list[i][k] != NULL)
       {
+        /*
+           printf("depend[j]: %s\n",depend[j]);
+           printf("list[i][k]: %s\n",list[i][k]);
+           printf("pid: %s\n",pid);
+           printf("list[i][0]: %s\n",list[i][0]);
+           */
         if (strcmp(depend[j], list[i][k]) == 0 &&
-            getpid() != (pid_t)list[i][k][0])
-          return (pid_t)list[i][k][0];
+            strcmp(pid, list[i][0]) != 0)
+        {
+          return atoi(list[i][0]);
+        }
         k++;
       }
     }
   }
+  //printf("returned -1\n");
   return -1;
 }
 
@@ -402,15 +419,21 @@ bool remove_from_list(char ****list, size_t list_size, pid_t p)
 {
   size_t i = 0;
   size_t j = 0;
+  char pid[100];
+  sprintf(pid,"%d",p);
   for (i = 0; i < list_size; i++)
   {
-    if (strcmp((*list)[i][0], (char*)p) == 0)
+    if ((*list)[i] != NULL)
     {
-      for (j = i; j < list_size-1; j++)
+      if (strcmp((*list)[i][0], pid) == 0)
       {
-        (*list)[j] = (*list)[j+1];
+        while ((*list)[i][j] != NULL)
+        {
+          (*list)[i][j] = NULL;
+          j++;
+        }
+        return true;
       }
-      return true;
     }
   }
   return false;
@@ -418,11 +441,19 @@ bool remove_from_list(char ****list, size_t list_size, pid_t p)
 
 void print_list(char** list, int list_size)
 {
-  int i =0;
+  if (list == NULL || list_size <0)
+  {
+    printf("List Array is NULL\n");
+    return;
+  }
+  int i = 0;
+
+  printf("List Size: %d\n", list_size);
   for (i =0; i < list_size;i++)
   {
     printf("Element %d: %s\n", i, list[i]);
   }
+  return;
 }
 
   void
@@ -433,10 +464,10 @@ execute_command (command_t c, bool time_travel)
      You can also use external functions defined in the GNU C Library.  */
   if (time_travel)
   {
-    int status = 0;
     pid_t match;
-    // Make Dependency
+    int status = 0;
     char** local_read_list = NULL;
+    // Initialize Local Dependencies
     int* read_count = (int*)malloc(sizeof(int));
     *read_count = 0;
 
@@ -444,6 +475,7 @@ execute_command (command_t c, bool time_travel)
     int* write_count = (int*)malloc(sizeof(int));
     *write_count = 0;
 
+    // Initialize Globals
     if(depend_read_count == NULL)
     {
       depend_read_count = malloc(sizeof(int));
@@ -455,47 +487,50 @@ execute_command (command_t c, bool time_travel)
       *depend_write_count = 0;
     }
 
+    // Make Dependency List
     make_depend_list(c, &local_read_list,  read_count, 
         &local_write_list, write_count);
 
     // Add Dependencies
-    add_to_list(&depend_read_list, depend_read_count, getpid(), local_read_list, *read_count);
-    add_to_list(&depend_write_list, depend_write_count, getpid(), local_write_list, *write_count);
+    int r = rand() % 100; // Unique ID for every command
+    add_to_list(&depend_read_list, depend_read_count, r, local_read_list, *read_count);
+    add_to_list(&depend_write_list, depend_write_count, r, local_write_list, *write_count);
 
-    // Check for dependencies
+    // Find Dependencies
     // Read local write
-    match =find_match(depend_read_list, *depend_read_count, local_write_list, *write_count);
+    match = find_match(depend_read_list, *depend_read_count, local_write_list, *write_count, r );
     if( match > 0)
     {
-      printf("MATCHED! read local write: %d\n", match);
       wait(&status);
     }
     // Write local write
-    match = find_match(depend_write_list, *depend_write_count, local_write_list, *write_count);
+    match = find_match(depend_write_list, *depend_write_count, local_write_list, *write_count, r);
     if( match > 0)
     {
-      printf("MATCHED! write local write: %d\n", match);
       wait(&status);
     }
     // Write local read
-    match = find_match(depend_write_list, *depend_write_count, local_read_list, *read_count);
+    match = find_match(depend_write_list, *depend_write_count, local_read_list, *read_count, r);
     if( match > 0 )
     {
-      printf("MATCHED! write local read: %d\n", match);
       wait(&status);
     }
 
-    pid_t pid = fork();
+    pid_t pid;
+    pid = fork();
     if (pid >= 0) // Fork successful
     {
       //Child
       if (pid == 0)
       {
+        // Run Command
         recurse_command(c);
 
-        // Remove Dependencies
-        remove_from_list(&depend_read_list, *depend_read_count, match);
-        remove_from_list(&depend_write_list, *depend_write_count, match);
+        // Remove Dependency from list
+        remove_from_list(&depend_read_list, *depend_read_count, r);
+        (*depend_read_count)--;
+        remove_from_list(&depend_write_list, *depend_write_count, r);
+        (*depend_write_count)--;
 
         exit(0); // Leave Process
       }
@@ -514,14 +549,7 @@ execute_command (command_t c, bool time_travel)
   }
   else
   {
-    //command_t *cmd_array = (command_t*)malloc(sizeof(command_t));
-    //int *array_size = (int*)malloc(sizeof(int));
-    //*array_size = 0;
-    //break_tree(c, &cmd_array, array_size);
-    //test_output_cmd(cmd_array, *array_size);
     recurse_command(c);
   }
-
-
   return;
 }
