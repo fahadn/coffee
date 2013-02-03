@@ -153,8 +153,9 @@ make_command_stream (int (*get_next_byte) (void *),
 			if (input_byte == '#') 
 			{
 				// Append # comment to next command
-				tmp_ch = (char*) checked_malloc(sizeof(char));
-				tmp_ch[0] = input_byte;
+				add_command(&(result_stream->command_list), pt_count++, "#", 1);
+				//tmp_ch = (char*) checked_malloc(sizeof(char));
+				//tmp_ch[0] = input_byte;
 			}
 			else if (input_byte == '|' && prev_byte == '|')
 			{
@@ -208,8 +209,7 @@ make_command_stream (int (*get_next_byte) (void *),
 			} 
 			// Reset for next add
 			if( (prev_byte == '|' && !is_valid_op(input_byte, prev_byte)) || 
-					(prev_byte == '&' && !is_valid_op(input_byte, prev_byte)) || 
-					input_byte == '#' )
+					(prev_byte == '&' && !is_valid_op(input_byte, prev_byte)))
 			{
 				cmd_count = 1;
 			}

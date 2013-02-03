@@ -93,18 +93,19 @@ bool run_command(command_t c)
   return true;
 }
 
-void free_command(command_t c)
+void free_command(command_t* c)
 {
-  switch(c->type)
+  switch((*c)->type)
   {
     case SIMPLE_COMMAND:
       {
-        free(c);
+        free(*c);
+        *c = NULL;
         break;
       }
     case SUBSHELL_COMMAND:
       {
-        free_command(c->u.subshell_command);
+        free_command(&((*c)->u.subshell_command));
         break;
       }
     case AND_COMMAND:
@@ -112,8 +113,8 @@ void free_command(command_t c)
     case PIPE_COMMAND:
     case SEQUENCE_COMMAND:
       {
-        free_command(c->u.command[0]);
-        free_command(c->u.command[1]);
+        free_command(&((*c)->u.command[0]));
+        free_command(&((*c)->u.command[1]));
         break;
       }
   }
@@ -500,6 +501,7 @@ execute_command (command_t c, bool time_travel)
   else
   {
 		recurse_command(c);
+    free_command(&c);
 	}
 
 	return;
