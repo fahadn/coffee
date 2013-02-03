@@ -431,7 +431,7 @@ void syn_error(command_stream_t s)
 
 bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
 {
-	printf("Entering break_tree\n");
+	//printf("Entering break_tree\n");
 	if ( c == NULL)
 		return false;
 	switch(c->type)
@@ -472,7 +472,7 @@ bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
 bool form_tree(command_t **c, command_t* output_cmd, int size)
 {
 	//given pointer to array of commands
-	printf("Entering form_tree with size %d\n", size);
+	//printf("Entering form_tree with size %d\n", size);
 	short i;
 	int * broken_subshell_size=(int*)malloc(sizeof(int));
 	*broken_subshell_size = 0;
@@ -947,7 +947,6 @@ object is returned, and the next time
 	{
 		return NULL;
 	}
-
 
 	command_t *cmd_array = (command_t*)malloc(sizeof(command_t));
 	int *array_size = (int*)malloc(sizeof(int));
