@@ -87,6 +87,7 @@ int is_valid_op(char op, char last_op)
 make_command_stream (int (*get_next_byte) (void *),
 		void *get_next_byte_argument)
 {
+
 	/* FIXME: Replace this with your implementation.  You may need to
 		 add auxiliary functions and otherwise modify the source code.
 		 You can also use external functions defined in the GNU C Library.  */
