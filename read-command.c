@@ -438,6 +438,7 @@ void syn_error(command_stream_t s)
 
 bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
 {
+	printf("Entering break_tree\n");
 	if ( c == NULL)
 		return false;
 	switch(c->type)
@@ -478,26 +479,28 @@ bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
 bool form_tree(command_t **c, command_t* output_cmd, int size)
 {
 	//given pointer to array of commands
-//	printf("Entering form_tree with size %d\n", size);
+	printf("Entering form_tree with size %d\n", size);
 	short i;
-	int * broken_subshell_size=NULL;
+	int * broken_subshell_size=(int*)malloc(sizeof(int));
+	*broken_subshell_size = 0;
+	command_t * broken_subshell = (command_t*)malloc(sizeof(command_t));
+	command_t subshell_output_cmd = (struct command*) checked_malloc(sizeof(struct command*));
 	for(i = 0; i < size; i++)
 	{
 		if((*c)[i] == NULL) continue;
 		//check for subcommands
 		if((*c)[i]->type == SUBSHELL_COMMAND)
 		{
-			command_t * broken_subshell = NULL;
 
 			//break up the subshell tree
-			if(!break_tree((*c)[i], &broken_subshell, broken_subshell_size))
+			if(!break_tree((*c)[i]->u.subshell_command, &broken_subshell, broken_subshell_size))
 				printf("Error breaking subshell tree!\n");
 
-			command_t subshell_output_cmd = NULL;
 			//pass in the broken tree to form_tree
-			command_t * temp_cmd_array = NULL;
-			temp_cmd_array = &(*c)[i];
-			if(!form_tree(&temp_cmd_array, &subshell_output_cmd, (*broken_subshell_size)))
+			//command_t * temp_cmd_array = NULL;
+			//temp_cmd_array = &(*c)[i];
+			subshell_output_cmd = (struct command*) checked_realloc(subshell_output_cmd, (*broken_subshell_size)*sizeof(struct command*));
+			if(!form_tree(&broken_subshell, &subshell_output_cmd, (*broken_subshell_size)))
 				printf("Error forming subshell tree!\n");
 
 			(*c)[i] = subshell_output_cmd;
