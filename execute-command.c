@@ -12,7 +12,7 @@
 #include <time.h>
 
 /* FIXME: You may need to add #include directives, macro definitions,
-   static function definitions, etc.  */
+	 static function definitions, etc.  */
 
 /* ERROR CDOES:
  * -1 = RUNNING
@@ -23,10 +23,10 @@
 
 void cmd_error(const char* cmd)
 {
-  if (cmd == NULL)
-    exit(1);
-  fprintf(stderr, "Command: %s cannot be found.\n", cmd);
-  exit(1);
+	if (cmd == NULL)
+		exit(1);
+	fprintf(stderr, "Command: %s cannot be found.\n", cmd);
+	exit(1);
 }
 
 bool run_command(command_t c)
@@ -242,20 +242,168 @@ bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
       }
   }
   return true;
-
 }
 
-bool form_tree(command_t *c, command_t output_cmd)
+bool form_tree(command_t *c, command_t output_cmd, int size)
 {
-  c=c;
-  output_cmd = output_cmd;
-  return true;
+	//given pointer to array of commands
+	printf("Entering form_tree with size %d\n", size);
+	output_cmd = output_cmd;
+	short i;
+	int * broken_subshell_size=NULL;
+	for(i = 0; i < size; i++)
+	{
+		if(c[i] == NULL) continue;
+		//check for subcommands
+		if(c[i]->type == SUBSHELL_COMMAND)
+		{
+			command_t * broken_subshell = NULL;
+			
+			//break up the subshell tree
+			if(!break_tree(c[i], &broken_subshell, broken_subshell_size))
+				printf("Error breaking subshell tree!\n");
+
+			command_t subshell_output_cmd = NULL;
+			//pass in the broken tree to form_tree
+			if(!form_tree(&c[i], subshell_output_cmd, (*broken_subshell_size)))
+				printf("Error forming subshell tree!\n");
+
+
+			c[i] = subshell_output_cmd;
+		}
+	}
+
+	//PIPE_COMMANDS 
+	for(i = 0; i < size; i++)
+	{
+		printf("Pipe iteration number %d\n", i);
+		if(c[i] == NULL) continue;
+
+		if(c[i]->type == PIPE_COMMAND)
+		{
+			if(i-1 >= 0)
+			{
+				int left_cmd_index = i-1;
+				if(c[left_cmd_index] == NULL)
+				{
+					while(left_cmd_index >= 0 && c[left_cmd_index] == NULL)
+					{
+						left_cmd_index--;
+					}
+					if(c[left_cmd_index] ==NULL) printf("Error attaching to left command of pipe");
+				}
+				
+				printf("Attaching %s command to pipe left\n", c[left_cmd_index]->u.word[0]);
+				c[i]->u.command[0] = c[left_cmd_index];
+				c[left_cmd_index] = NULL;
+			
+			}
+			if(i+1 < size)
+			{
+				int right_cmd_index = i+1;
+				if(c[right_cmd_index] ==NULL)
+				{
+					while(right_cmd_index < size && c[right_cmd_index] ==NULL)
+					{
+						right_cmd_index++;
+					}
+				}
+			
+			printf("Attaching %s command to pipe right\n", c[right_cmd_index]->u.word[0]);
+			c[i]->u.command[1] = c[right_cmd_index];
+			c[right_cmd_index] =NULL;
+		}
+		}
+
+	}
+
+	for(i = 0; i < size; i++)
+	{
+		printf("ORANDSEQ Loop iteration %d\n", i);
+		//OR COMMAND
+		if(c[i] == NULL) continue;
+		if(c[i]->type == OR_COMMAND || c[i]->type == AND_COMMAND || c[i]->type == SEQUENCE_COMMAND)
+		{
+			if(i-1 >= 0)
+			{
+				int left_cmd_index = i-1;
+				//left is being accessed it has somethign to do with the while loop and the iterations of i--
+				if(c[left_cmd_index] == NULL)
+				{
+					while(left_cmd_index >= 0 && c[left_cmd_index] == NULL)
+					{
+						left_cmd_index--;
+					}
+					if(c[left_cmd_index] ==NULL)
+					{
+						printf("Error attaching to left command of or command\n");
+						}
+				}
+			
+				if(c[left_cmd_index]->type == SIMPLE_COMMAND)
+				{
+					printf("Adding simple command %s to left of %d cmd\n", c[left_cmd_index]->u.word[0], c[i]->type);
+
+				}
+				c[i]->u.command[0] = c[left_cmd_index];
+				c[left_cmd_index] = NULL;
+				
+			}
+			if(i+1 < size)
+			{
+				int right_cmd_index = i+1;
+				if(c[right_cmd_index] ==NULL)
+				{
+					while(right_cmd_index < size && c[right_cmd_index] ==NULL )
+					{
+						right_cmd_index++;
+					}
+				}
+			
+			if(c[right_cmd_index]->type == SIMPLE_COMMAND)
+			{
+				printf("Adding simple %s to right of %d cmd\n", c[right_cmd_index]->u.word[0], c[i]->type);
+
+			}
+			else
+			{
+				printf("Adding cmd %d to right of %d cmd\n", c[right_cmd_index]->type, c[i]->type);
+
+			}
+
+			c[i]->u.command[1] = c[right_cmd_index];
+			c[right_cmd_index] =NULL;
+			}
+		}
+	}
+	short cmd_count =0;
+	short cmd_index = 0;
+	for(i = 0; i < size; i++)
+	{
+		if(c[i] != NULL)
+		{
+			cmd_count++;
+			cmd_index=i;
+		}
+	}
+	printf("Cmd count: %d\n", cmd_count);
+	if(cmd_count != 1)
+	{
+		printf("Command count was not 1");
+		return false;
+	}
+
+	printf("I got to the end of form_tree\n");
+
+	output_cmd = c[cmd_index];
+	printf("Output_cmd type: %d\n", output_cmd->type);
+	return true;
 }
 
   int
 command_status (command_t c)
 {
-  return c->status;
+	return c->status;
 }
 
 void test_output_cmd(command_t *cmd_array, int array_size)
@@ -549,7 +697,26 @@ execute_command (command_t c, bool time_travel)
   }
   else
   {
-    recurse_command(c);
-  }
-  return;
+    //command_t *cmd_array = (command_t*)malloc(sizeof(command_t));
+    //int *array_size = (int*)malloc(sizeof(int));
+    //*array_size = 0;
+    //break_tree(c, &cmd_array, array_size);
+    //test_output_cmd(cmd_array, *array_size);
+//    recurse_command(c);
+
+
+		command_t *cmd_array = (command_t*)malloc(sizeof(command_t));
+		int *array_size = (int*)malloc(sizeof(int));
+		*array_size = 0;
+		//command_t cmd = malloc(2*sizeof(struct command *));
+		break_tree(c, &cmd_array, array_size);
+		short temp = * array_size;
+		command_t cmd = malloc(temp*sizeof(struct command *));
+
+		// test_output_cmd(cmd_array, *array_size);
+		form_tree(cmd_array, cmd, *array_size);
+		printf("I got right before recurse command with cmd type %d\n", cmd->type);
+		recurse_command(cmd);
+	}
+	return;
 }
