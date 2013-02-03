@@ -295,7 +295,7 @@ bool build_word_command(char** word, struct command **cmd_ptr)
 {
 	if (word == NULL)
 		return false;
-	(*cmd_ptr) = (struct command* )malloc(50*sizeof(struct command));
+	(*cmd_ptr) = (struct command* )malloc(100*sizeof(struct command));
 	(*cmd_ptr)->type = SIMPLE_COMMAND;
 	(*cmd_ptr)->status = 2;
 	(*cmd_ptr)->input = NULL;
@@ -311,22 +311,22 @@ bool build_special_command(char* type, struct command **cmd_ptr)
 		return false;
 	if (strcmp(type,"&&") == 0)
 	{
-		(*cmd_ptr) = (struct command*)malloc(50*sizeof(struct command));
+		(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
 		(*cmd_ptr)->type = AND_COMMAND;
 	}
 	else if (strcmp(type,"||") == 0)
 	{
-		(*cmd_ptr) = (struct command*)malloc(50*sizeof(struct command));
+		(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
 		(*cmd_ptr)->type = OR_COMMAND;
 	}
 	else if (strcmp(type,"|") == 0)
 	{
-		(*cmd_ptr) = (struct command*)malloc(50*sizeof(struct command));
+		(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
 		(*cmd_ptr)->type = PIPE_COMMAND;
 	}
 	else if (strcmp(type,";") == 0)
 	{
-		(*cmd_ptr) = (struct command*)malloc(50*sizeof(struct command));
+		(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
 		(*cmd_ptr)->type = SEQUENCE_COMMAND;
 	}
 	else 
@@ -346,7 +346,7 @@ bool build_sub_command(command_t* cmd, command_t *cmd_ptr)
 {
 	if (cmd == NULL)
 		return false;
-	(*cmd_ptr) = (struct command*)malloc(50*sizeof(struct command));  
+	(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));  
 	(*cmd_ptr)->status = 2;
 	(*cmd_ptr)->type = 5; //subshell code
 	(*cmd_ptr)->input = NULL;
@@ -358,7 +358,7 @@ bool build_sub_command(command_t* cmd, command_t *cmd_ptr)
 // Add command word to array list
 bool add_cmd_to_list(char* cmd, char*** list, int list_size)
 {
-	*list = (char**)realloc((*list), (list_size+50)*sizeof(char*));
+	*list = (char**)realloc((*list), (list_size+100)*sizeof(char*));
 	{
 		if (cmd == NULL)
 		{
