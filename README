@@ -1,4 +1,4 @@
-This is a skeleton for CS 111 Lab 1.
+This is a time travel shell for CS 111 Lab 1.
 
 Lab for 
 Robert Nguyen
@@ -8,12 +8,11 @@ Partner:
 Fahad Nathani
 203940502
 
-Lab1A
-- Does not account for ORs, Pipes, Sequences
-- will be implementing error check and pipes soon.
-Lab1B
-- Bugs with edge cases
-
-Bugs:
-  - memory management isn't robust, ie. all set to 100*sizeof
+Implementation Notes:
+  - read-command.c
+    - Initially we used an algorithm to create a tree however 
+    - as it was unclear in the spec as to what the precedence of 
+    - certain operators was, print command printed with extra indents.
+    - We decided to break the tree we made as it was fully syntactically
+    - correct, and form it using a better algorithm.
 
