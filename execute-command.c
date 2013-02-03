@@ -32,12 +32,15 @@ void cmd_error(const char* cmd)
 
 bool run_command(command_t c)
 {
+  // Error Check
   if (c == NULL)
   {
     return false;
   }
   // Check IO
   // Set contents of file to be an argument
+
+  // For input files
   if (c->input != NULL)
   {
     size_t i = 0;
@@ -47,16 +50,24 @@ bool run_command(command_t c)
     {
       i++; 
     }
-    c->u.word[i] = (char*)malloc(in_size *sizeof(char));
+    // Add input file as argument
+    c->u.word[i] = (char*)checked_malloc(in_size * sizeof(char));
     c->u.word[i] = c->input;
-    c->u.word[i+1] = (char*)malloc(sizeof(char));
+    // Append NULL to end of array
+    c->u.word[i+1] = (char*)checked_malloc(sizeof(char));
     c->u.word[i+1] = NULL;
   } 
 
+  // For output files
   // Print stdout to file
   if (c->output != NULL)
   {
-    freopen(c->output, "w", stdout);
+    FILE* open = freopen(c->output, "w", stdout);
+    if (open == NULL)
+    {
+      fprintf(stderr, "Unable to open file: %s\n", c->output);
+      exit(1);
+    }
   }
 
   // Testing Code
@@ -71,23 +82,30 @@ bool run_command(command_t c)
   // Close output file if set
   if (c->output != NULL)
   {
-    fclose(stdout);
+    int close = fclose(stdout);
+    if (close == EOF)
+    {
+      fprintf(stderr, "Unable to close file: %s\n", c->output);
+      exit(1);
+    }
+    
   }
   return true;
 }
 
-void free_command(command_t c)
+void free_command(command_t* c)
 {
-  switch(c->type)
+  switch((*c)->type)
   {
     case SIMPLE_COMMAND:
       {
-        free(c);
+        free(*c);
+        *c = NULL;
         break;
       }
     case SUBSHELL_COMMAND:
       {
-        free_command(c->u.subshell_command);
+        free_command(&((*c)->u.subshell_command));
         break;
       }
     case AND_COMMAND:
@@ -95,8 +113,8 @@ void free_command(command_t c)
     case PIPE_COMMAND:
     case SEQUENCE_COMMAND:
       {
-        free_command(c->u.command[0]);
-        free_command(c->u.command[1]);
+        free_command(&((*c)->u.command[0]));
+        free_command(&((*c)->u.command[1]));
         break;
       }
   }
@@ -105,14 +123,14 @@ void free_command(command_t c)
 
 bool recurse_command(command_t c)
 {
-  int pipefd[2];
   int status = 0;
-  pid_t in_pid, out_pid;
+  int pipefd[2];
+  pid_t in_pid;
+  pid_t out_pid;
 
   // Error Check
   if (c == NULL)
   {
-		printf("This was null\n");
     return true;
   }
 	
@@ -129,19 +147,26 @@ bool recurse_command(command_t c)
       }
     case PIPE_COMMAND:
       {
+        int p = pipe(pipefd);
         status = 0;
-        pipe(pipefd);
+        if (p == -1)
+        {
+          fprintf(stderr, "Could not pipe\n");
+          exit(1);
+        }
         // Generate output to pipe
         out_pid = fork();
-        if (out_pid == 0)
+        if (out_pid == 0) // Child
         {
           dup2(pipefd[1], STDOUT_FILENO);
           close(pipefd[0]);
           recurse_command(c->u.command[0]);
         }
-        else if (out_pid > 0)
+        else if (out_pid > 0) // Parent
+        {
           wait(&status);
-        else if (out_pid < 0)
+        }
+        else if (out_pid < 0) // Error
         {
           fprintf(stderr, "Fork Error");
           exit(1);
@@ -149,15 +174,17 @@ bool recurse_command(command_t c)
 
         // Generate input to pipe
         in_pid = fork();
-        if (in_pid == 0)
+        if (in_pid == 0) // Child
         {
           dup2(pipefd[0], STDIN_FILENO);
           close(pipefd[1]);
           recurse_command(c->u.command[1]);
         }
-        else if (in_pid > 0)
+        else if (in_pid > 0) // Parent
+        {
           wait(&status);
-        else if (in_pid < 0)
+        }
+        else if (in_pid < 0) // Error
         {
           fprintf(stderr, "Fork Error");
           exit(1);
@@ -181,16 +208,18 @@ bool recurse_command(command_t c)
 
         // Put command in separate process
         pid_t pid = fork();
-        if (pid > 0)
-          wait(&status);
-        else if (pid == 0)
+        if (pid == 0) // Child
         {
           if (!isspace(c->u.word[0][0]))
           {
             run_command(c);
           }
         } 
-        else if (pid < 0)
+        else if (pid > 0) // Parent
+        {
+          wait(&status);
+        }
+        else if (pid < 0) // Error
         {
           fprintf(stderr, "Fork Error\n");
           exit(1);
@@ -198,14 +227,13 @@ bool recurse_command(command_t c)
 
         if (status > 1)
           return false;
+
 				break;
       }
     default:
       {
-				printf("Shit you're in a big mess \n");
         fprintf(stderr, "Invalid command type passed in\n");
 				exit(1);
-				//return true;
       }
   }
   return true;
@@ -214,30 +242,6 @@ bool recurse_command(command_t c)
 command_status (command_t c)
 {
 	return c->status;
-}
-
-void test_output_cmd(command_t *cmd_array, int array_size)
-{ 
-  // Test break tree
-  int i = 0;
-  for (i = 0; i < array_size ;i++)
-  {
-    switch(cmd_array[i]->type)
-    {
-      case AND_COMMAND:
-        printf("Type: AND_COMMAND\n"); break;
-      case SEQUENCE_COMMAND:
-        printf("Type: SEQENCE_COMMAND\n"); break;
-      case OR_COMMAND:
-        printf("Type: PIPE_COMMAND\n"); break;
-      case PIPE_COMMAND:
-        printf("Type: PIPE_COMMAND\n"); break;
-      case SIMPLE_COMMAND:
-        printf("Type: SIMPLE_COMMAND\n Word: %s\n", cmd_array[i]->u.word[0]); break;
-      case SUBSHELL_COMMAND:
-        printf("Type: SUBSHELL_COMMAND\n"); break;
-    }
-  }
 }
 
 /***********************
@@ -249,24 +253,18 @@ int* depend_read_count = NULL;
 char ***depend_write_list = NULL;
 int* depend_write_count = NULL;
 /***********************
- * ********************/
+ **********************/
 
 // Depend list has NULL at end of list 
 bool make_depend_list(command_t c, char*** depend_read_list,  int* read_count, 
     char*** depend_write_list, int* write_count )
 {
+  // Error Check
   if ( c == NULL )
     return false;
-  if (depend_read_count == NULL)
-  {
-    depend_read_count = malloc(sizeof(int));
-    depend_read_count = 0;
-  }
-  if (depend_write_count == NULL)
-  {
-    depend_write_count = malloc(sizeof(int));
-    depend_write_count = 0;
-  }
+  if (depend_read_count == NULL || depend_write_count == NULL)
+    return false;
+
   switch(c->type)
   {
     case AND_COMMAND:
@@ -285,13 +283,13 @@ bool make_depend_list(command_t c, char*** depend_read_list,  int* read_count,
       {
         if (c->input != NULL)
         {
-          (*depend_read_list) = (char**) realloc((*depend_read_list), (*read_count+10)*sizeof(char*));
+          (*depend_read_list) = (char**) checked_realloc((*depend_read_list), (*read_count+10)*sizeof(char*));
           (*depend_read_list)[*read_count] = strdup(c->input);
           (*read_count)++;
         }
         if (c->output != NULL)
         {
-          (*depend_write_list) = (char**) realloc((*depend_write_list), (*write_count+10)*sizeof(char*));
+          (*depend_write_list) = (char**) checked_realloc((*depend_write_list), (*write_count+10)*sizeof(char*));
           (*depend_write_list)[*write_count] = strdup(c->output);
           (*write_count)++;
         }
@@ -316,33 +314,34 @@ bool add_to_list(char**** list, int *list_size, pid_t p, char** depend, int depe
   if (depend == NULL || depend_size < 0)
     return false;
   if (*list == NULL)
-    (*list) = malloc(sizeof(char**)*100);
+    (*list) = checked_malloc(sizeof(char**)*10);
 
-  (*list) = realloc((*list), ((*list_size)+10)*sizeof(char**));
-  (*list)[*list_size] = (char**) realloc((*list)[*list_size], (*list_size+100)*sizeof(char*));
+  int i = 1;
+
+  (*list) = checked_realloc((*list), ((*list_size)+10)*sizeof(char**));
+  (*list)[*list_size] = (char**)checked_realloc((*list)[*list_size], (*list_size+100)*sizeof(char*));
   char pid[100];
   sprintf(pid,"%d",p);
   (*list)[*list_size][0] = strdup( pid );
-  int i = 1;
   for (i = 1; i < depend_size+1; i++)
   {
     (*list)[*list_size][i] = strdup(depend[i-1]);
   }
   (*list_size)++;
-  return true;
 
+  return true;
 }
 
-// Returns pid of dependency when any command in depend is in list
+// Returns id of dependency when any command in depend is in list
 // returns negative pid when not found
 pid_t find_match(char *** list, int list_size, char** depend, int depend_size, int id)
 {
-  if (list == NULL)
+  if (list == NULL || depend == NULL || depend_size <= 0 || list_size <= 0)
     return -1;
   int i = 0;
   int j = 0;
   int k = 0;
-  char pid[100];
+  char pid[5];
   sprintf(pid,"%d",id);
   for (i = 0; i < list_size; i++)
   {
@@ -353,12 +352,7 @@ pid_t find_match(char *** list, int list_size, char** depend, int depend_size, i
       k = 0;
       while (list[i][k] != NULL)
       {
-        /*
-           printf("depend[j]: %s\n",depend[j]);
-           printf("list[i][k]: %s\n",list[i][k]);
-           printf("pid: %s\n",pid);
-           printf("list[i][0]: %s\n",list[i][0]);
-           */
+        // Find an arguement match
         if (strcmp(depend[j], list[i][k]) == 0 &&
             strcmp(pid, list[i][0]) != 0)
         {
@@ -368,7 +362,6 @@ pid_t find_match(char *** list, int list_size, char** depend, int depend_size, i
       }
     }
   }
-  //printf("returned -1\n");
   return -1;
 }
 
@@ -377,7 +370,7 @@ bool remove_from_list(char ****list, size_t list_size, pid_t p)
 {
   size_t i = 0;
   size_t j = 0;
-  char pid[100];
+  char pid[5];
   sprintf(pid,"%d",p);
   for (i = 0; i < list_size; i++)
   {
@@ -422,26 +415,27 @@ execute_command (command_t c, bool time_travel)
      You can also use external functions defined in the GNU C Library.  */
   if (time_travel)
   {
-    pid_t match;
     int status = 0;
-    char** local_read_list = NULL;
+    pid_t match;
+
     // Initialize Local Dependencies
-    int* read_count = (int*)malloc(sizeof(int));
+    char** local_read_list = NULL;
+    int* read_count = (int*)checked_malloc(sizeof(int));
     *read_count = 0;
 
     char **local_write_list = NULL;
-    int* write_count = (int*)malloc(sizeof(int));
+    int* write_count = (int*)checked_malloc(sizeof(int));
     *write_count = 0;
 
     // Initialize Globals
     if(depend_read_count == NULL)
     {
-      depend_read_count = malloc(sizeof(int));
+      depend_read_count = (int*)checked_malloc(sizeof(int));
       *depend_read_count = 0;
     }
     if(depend_write_count == NULL)
     {
-      depend_write_count = malloc(sizeof(int));
+      depend_write_count = (int*)checked_malloc(sizeof(int));
       *depend_write_count = 0;
     }
 
@@ -474,8 +468,7 @@ execute_command (command_t c, bool time_travel)
       wait(&status);
     }
 
-    pid_t pid;
-    pid = fork();
+    pid_t pid = fork();
     if (pid >= 0) // Fork successful
     {
       //Child
@@ -507,17 +500,8 @@ execute_command (command_t c, bool time_travel)
   }
   else
   {
-/*
-		command_t *cmd_array = (command_t*)malloc(sizeof(command_t));
-		int *array_size = (int*)malloc(sizeof(int));
-		*array_size = 0;
-		break_tree(c, &cmd_array, array_size);
-		command_t cmd = (struct command*) checked_malloc((*array_size)*sizeof(struct command *));
-
-		form_tree(&cmd_array, &cmd, *array_size);
-		if(cmd->u.command[0] ==NULL) printf("WTF\n");
-		printf("I got right before recurse command with cmd type %d\n", cmd->type);
-		recurse_command(cmd);*/
+		recurse_command(c);
+    free_command(&c);
 	}
 
 	return;

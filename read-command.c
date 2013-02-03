@@ -45,7 +45,7 @@ int add_command(char*** list, int list_size, char* cmd, int cmd_size)
 
 	int i = 0;
 
-	char *l_cmd = (char*) malloc(cmd_size+1);
+	char *l_cmd = (char*) checked_malloc(cmd_size+1);
 	for (i = 0; i < cmd_size; i++)
 	{
 		l_cmd[i] = cmd[i];
@@ -68,7 +68,7 @@ int add_command(char*** list, int list_size, char* cmd, int cmd_size)
 		}
 	}
 	// Add command to list
-	*list = (char**) realloc(*list, (list_size+1)*sizeof(char**));
+	*list = (char**) checked_realloc(*list, (list_size+1)*sizeof(char**));
 	(*list)[list_size] = strdup(l_cmd);
 
 	return 1;
@@ -100,13 +100,13 @@ make_command_stream (int (*get_next_byte) (void *),
 	char prev_byte;
 	char *tmp = NULL;
 	char *tmp_ch = NULL;
-	command_stream_t result_stream = (struct command_stream*) malloc(sizeof(struct command_stream*));
+	command_stream_t result_stream = (struct command_stream*) checked_malloc(sizeof(struct command_stream*));
 	result_stream->size = 0;
 	result_stream->cmd_count = 0;
 	result_stream->line_count = 1;
 
 	// Initalize memory allocation for stream
-	result_stream->command_list = (char**) malloc(sizeof(char**));
+	result_stream->command_list = (char**) checked_malloc(sizeof(char**));
 	result_stream->command_list[0] = NULL;
 
 	// initialize stream
@@ -137,18 +137,25 @@ make_command_stream (int (*get_next_byte) (void *),
 			// Operator Cases
 			if (input_byte == '\n')
 			{
-				if(result_stream->command_list[pt_count-1][0] == '\n')
-				{
-					prev_byte = input_byte;
-					input_byte = get_next_byte(get_next_byte_argument);
-					continue;
-				}
+        // Get rid of leading \n
+        if(pt_count == 0)
+        {
+	        input_byte = (char)get_next_byte(get_next_byte_argument);
+          continue;
+        }
+				  if(result_stream->command_list[pt_count-1][0] == '\n')
+				  {
+					  prev_byte = input_byte;
+					  input_byte = get_next_byte(get_next_byte_argument);
+					  continue;
+				  }
 			}
 			if (input_byte == '#') 
 			{
 				// Append # comment to next command
-				tmp_ch = (char*) malloc(sizeof(char));
-				tmp_ch[0] = input_byte;
+				add_command(&(result_stream->command_list), pt_count++, "#", 1);
+				//tmp_ch = (char*) checked_malloc(sizeof(char));
+				//tmp_ch[0] = input_byte;
 			}
 			else if (input_byte == '|' && prev_byte == '|')
 			{
@@ -178,7 +185,7 @@ make_command_stream (int (*get_next_byte) (void *),
 				// Add operator 
 				add_command(&(result_stream->command_list), pt_count++, "&", 1);
 				// Add current
-				tmp_ch = (char*) malloc(sizeof(char));
+				tmp_ch = (char*) checked_malloc(sizeof(char));
 				tmp_ch[0] = input_byte;
 			}
 			else if (input_byte == '&' && prev_byte == '&')
@@ -195,15 +202,14 @@ make_command_stream (int (*get_next_byte) (void *),
 			else
 			{
 				// Add operator 
-				tmp = (char*) malloc(sizeof(char));
+				tmp = (char*) checked_malloc(sizeof(char));
 				tmp[0] = input_byte;
 				add_command(&(result_stream->command_list), pt_count++, tmp, 1);
 				free(tmp);
 			} 
 			// Reset for next add
 			if( (prev_byte == '|' && !is_valid_op(input_byte, prev_byte)) || 
-					(prev_byte == '&' && !is_valid_op(input_byte, prev_byte)) || 
-					input_byte == '#' )
+					(prev_byte == '&' && !is_valid_op(input_byte, prev_byte)))
 			{
 				cmd_count = 1;
 			}
@@ -223,7 +229,7 @@ make_command_stream (int (*get_next_byte) (void *),
 			continue;
 		}
 		// Allocate for command until delimiter found
-		tmp_ch = (char*) realloc(tmp_ch, (cmd_count+1)*sizeof(char));
+		tmp_ch = (char*) checked_realloc(tmp_ch, (cmd_count+1)*sizeof(char));
 		tmp_ch[cmd_count] = input_byte;
 		cmd_count++;
 
@@ -232,9 +238,9 @@ make_command_stream (int (*get_next_byte) (void *),
 	}
 
 	result_stream->size = pt_count;
-	
 	//Test print
-/*	int i = 0;
+  /*
+	int i = 0;
 	for (i=0; i < pt_count; i++)
 	{
 		printf("%d: %s \n", i, result_stream->command_list[i]);
@@ -295,7 +301,7 @@ bool build_word_command(char** word, struct command **cmd_ptr)
 {
 	if (word == NULL)
 		return false;
-	(*cmd_ptr) = (struct command* )malloc(100*sizeof(struct command));
+	(*cmd_ptr) = (struct command* )checked_malloc(sizeof(struct command));
 	(*cmd_ptr)->type = SIMPLE_COMMAND;
 	(*cmd_ptr)->status = 2;
 	(*cmd_ptr)->input = NULL;
@@ -311,22 +317,22 @@ bool build_special_command(char* type, struct command **cmd_ptr)
 		return false;
 	if (strcmp(type,"&&") == 0)
 	{
-		(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
+		(*cmd_ptr) = (struct command*)checked_malloc(sizeof(struct command));
 		(*cmd_ptr)->type = AND_COMMAND;
 	}
 	else if (strcmp(type,"||") == 0)
 	{
-		(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
+		(*cmd_ptr) = (struct command*)checked_malloc(sizeof(struct command));
 		(*cmd_ptr)->type = OR_COMMAND;
 	}
 	else if (strcmp(type,"|") == 0)
 	{
-		(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
+		(*cmd_ptr) = (struct command*)checked_malloc(sizeof(struct command));
 		(*cmd_ptr)->type = PIPE_COMMAND;
 	}
 	else if (strcmp(type,";") == 0)
 	{
-		(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));
+		(*cmd_ptr) = (struct command*)checked_malloc(sizeof(struct command));
 		(*cmd_ptr)->type = SEQUENCE_COMMAND;
 	}
 	else 
@@ -346,7 +352,7 @@ bool build_sub_command(command_t* cmd, command_t *cmd_ptr)
 {
 	if (cmd == NULL)
 		return false;
-	(*cmd_ptr) = (struct command*)malloc(100*sizeof(struct command));  
+	(*cmd_ptr) = (struct command*)checked_malloc(sizeof(struct command));  
 	(*cmd_ptr)->status = 2;
 	(*cmd_ptr)->type = 5; //subshell code
 	(*cmd_ptr)->input = NULL;
@@ -358,7 +364,7 @@ bool build_sub_command(command_t* cmd, command_t *cmd_ptr)
 // Add command word to array list
 bool add_cmd_to_list(char* cmd, char*** list, int list_size)
 {
-	*list = (char**)realloc((*list), (list_size+100)*sizeof(char*));
+	*list = (char**)checked_realloc((*list), (list_size+100)*sizeof(char*));
 	{
 		if (cmd == NULL)
 		{
@@ -387,6 +393,7 @@ bool add_cmd_to_special(command_t* cmd, command_t* special, char dir)
 		if ((*cmd)->u.command[0] == NULL || (*cmd)->u.command[1] == NULL)
 			return false;
 	}
+
 	// Add command to special command
 	if (dir == 'l')
 		(*special)->u.command[0] = *cmd;
@@ -410,12 +417,12 @@ bool add_word_to_IO(char* word, command_t* cmd, char io)
 		return false;
 	if (io == 'i')
 	{
-		(*cmd)->input = (char*)malloc(strlen(word)*sizeof(char));
+		(*cmd)->input = (char*)checked_malloc(strlen(word)*sizeof(char));
 		(*cmd)->input = word;
 	}
 	else if (io == 'o')
 	{
-		(*cmd)->output = (char*)malloc(strlen(word)*sizeof(char));
+		(*cmd)->output = (char*)checked_malloc(strlen(word)*sizeof(char));
 		(*cmd)->output = word;
 	}
 	else
@@ -444,7 +451,7 @@ bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
 		case SEQUENCE_COMMAND:
 			{
 				break_tree(c->u.command[0], output_cmd_array, array_size);
-				(*output_cmd_array) = (command_t*)realloc((*output_cmd_array), ((*array_size)+1)*sizeof(command_t)*100);
+				(*output_cmd_array) = (command_t*)checked_realloc((*output_cmd_array), ((*array_size)+1)*sizeof(command_t)*100);
 				(*output_cmd_array)[(*array_size)] = c;
 				(*array_size)++;
 				break_tree(c->u.command[1], output_cmd_array, array_size);
@@ -455,7 +462,7 @@ bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
 		case SUBSHELL_COMMAND:
 		case SIMPLE_COMMAND:
 			{
-				(*output_cmd_array) = (command_t*)realloc((*output_cmd_array), ((*array_size)+1)*sizeof(command_t)*100);
+				(*output_cmd_array) = (command_t*)checked_realloc((*output_cmd_array), ((*array_size)+1)*sizeof(command_t)*100);
 				(*output_cmd_array)[(*array_size)] = c;
 
 				(*array_size)++;
@@ -610,7 +617,7 @@ bool form_tree(command_t **c, command_t* output_cmd, int size)
 			}
 		}
 	}
-	short cmd_count =0;
+	short cmd_count = 0;
 	short cmd_index = 0;
 	for(i = 0; i < size; i++)
 	{
@@ -947,9 +954,9 @@ object is returned, and the next time
 	{
 		return NULL;
 	}
+	command_t *cmd_array = (command_t*)checked_malloc(sizeof(command_t));
+	int *array_size = (int*)checked_malloc(sizeof(int));
 
-	command_t *cmd_array = (command_t*)malloc(sizeof(command_t));
-	int *array_size = (int*)malloc(sizeof(int));
 	*array_size = 0;
 	break_tree(cmd_ptr, &cmd_array, array_size);
 	command_t cmd = (struct command*) checked_malloc((*array_size)*sizeof(struct command *));

@@ -1,20 +1,18 @@
-This is a skeleton for CS 111 Lab 1.
+This is a time travel shell for CS 111 Lab 1.
 
-Lab for 
+Lab 1 for 
 Robert Nguyen
-803879361
+UID: 803879361
 
 Partner:
 Fahad Nathani
-203940502
+UID: 203940502
 
-Lab1A
-- Does not account for ORs, Pipes, Sequences
-- will be implementing error check and pipes soon.
-
-Bugs:
-  - memory management isn't robust, ie. all set to 100*sizeof
-  - does not handle ()
-  - does not handle < > syntax
-  - case: cat < /etc/passwd should be cat</etc/passwd
-
+Implementation Notes:
+  - read-command.c
+    - Initially we constructed our command tree iterating from left to right since
+		  the spec was unclear on specifications on precedence. It was not until discussion
+			week 3 when the slides on project 1b made precedence clear. Thus we
+			had to reform our code by breaking up the tree originally created and
+			reforming it while following precedence rules. This can be seen in the
+			functions break_tree and form_tree.
