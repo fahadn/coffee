@@ -4,6 +4,8 @@
 #include <error.h>
 #include <getopt.h>
 #include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
 
 #include "command.h"
 
@@ -25,6 +27,7 @@ get_next_byte (void *stream)
 int
 main (int argc, char **argv)
 {
+  srand(time(NULL));
   int command_number = 1;
   bool print_tree = false;
   bool time_travel = false;
@@ -57,7 +60,7 @@ main (int argc, char **argv)
     {
       if (print_tree)
 	{
-	  printf ("# %d\n", command_number++);
+	  printf("# %d\n", command_number++);
 	  print_command (command);
 	}
       else

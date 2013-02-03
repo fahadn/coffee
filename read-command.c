@@ -233,12 +233,12 @@ make_command_stream (int (*get_next_byte) (void *),
   result_stream->size = pt_count;
 
   //Test print
-  int i = 0;
-  for (i=0; i < pt_count; i++)
+  //int i = 0;
+  //for (i=0; i < pt_count; i++)
   {
-    printf("%d: %s \n", i, result_stream->command_list[i]);
+    //printf("%d: %s \n", i, result_stream->command_list[i]);
   }
-  printf("\npt_count: %d \n", pt_count);
+  //printf("\npt_count: %d \n", pt_count);
 
   // Returns stream as character array
   return result_stream;
