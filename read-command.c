@@ -478,7 +478,7 @@ bool break_tree(command_t c, command_t **output_cmd_array, int* array_size)
 bool form_tree(command_t **c, command_t* output_cmd, int size)
 {
 	//given pointer to array of commands
-	//printf("Entering form_tree with size %d\n", size);
+//	printf("Entering form_tree with size %d\n", size);
 	short i;
 	int * broken_subshell_size=NULL;
 	for(i = 0; i < size; i++)
